@@ -8,8 +8,8 @@ from random import shuffle, randint, Random
 Sample_Length = 1200
 N = 30
 J = int(Sample_Length/N)
-FanEnd = [f for f in listdir('CWRU/segmented/FanEnd')]
-DriveEnd = [f for f in listdir('CWRU/segmented/DriveEnd')]
+FanEnd = [f for f in listdir('CWRU/segmented/fanend')]
+DriveEnd = [f for f in listdir('CWRU/segmented/driveend')]
 
 Seed = randint(0,1e6)
 
@@ -54,7 +54,7 @@ y_mixed_train = []
 y_mixed_test = []
 
 for name in FanEnd:
-    df = pd.read_csv(f'CWRU/segmented/FanEnd/{name}')
+    df = pd.read_csv(f'CWRU/segmented/fanend/{name}')
 
     # discard segments that does not fill a sample
     data = df.drop(['label'], axis=1).values.tolist()[:len(df)-len(df)%J]

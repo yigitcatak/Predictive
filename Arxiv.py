@@ -154,10 +154,10 @@ if Channel_Count == 1:
     y_test = torch.load('CWRU/presplit/arxiv_singlechannel/y_test.pt')
 
 if Channel_Count == 2:
-    x_train = torch.load('CWRU/presplit/multichannel/x_train.pt')
-    y_train = torch.load('CWRU/presplit/multichannel/y_train.pt')
-    x_test = torch.load('CWRU/presplit/multichannel/x_test.pt')
-    y_test = torch.load('CWRU/presplit/multichannel/y_test.pt')
+    x_train = torch.load('CWRU/presplit/arxiv_multichannel/x_train.pt')
+    y_train = torch.load('CWRU/presplit/arxiv_multichannel/y_train.pt')
+    x_test = torch.load('CWRU/presplit/arxiv_multichannel/x_test.pt')
+    y_test = torch.load('CWRU/presplit/arxiv_multichannel/y_test.pt')
 
 weights = torch.load('saves/CWRU_Class_Weights.pt')
 
