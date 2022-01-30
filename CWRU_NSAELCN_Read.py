@@ -71,14 +71,14 @@ for name in FanEnd:
     # so they don't get lost during shuffling
     train = GroupSamples(train,J)
     train = list(zip(train,train_label))
-    shuffle(train)
-    train, train_label = zip(*train)
-    train = Flatten(train)
 
     x_train += train
     x_test += test
-    y_train += train_label
     y_test += test_label
+
+shuffle(x_train)
+x_train, y_train = zip(*x_train)
+x_train = Flatten(x_train)
 
 x_train, mean, eigen_vecs, diagonal_mat = Whiten(x_train)
 x_test = Whiten(x_test, mean, eigen_vecs, diagonal_mat)
