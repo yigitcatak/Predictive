@@ -17,8 +17,8 @@ Class_Count = 10
 Subband_Count = 1
 Channel_Count = 1
 Sample_Length = 1200
-N = 40
-K = 20
+N = 30
+K = 400
 J = int(Sample_Length/N)
 
 class Arxiv(nn.Module):
@@ -69,7 +69,8 @@ class Classifier(nn.Module):
     def forward(self,x):
         # get the mean segment of each J segment
         features = torch.stack([torch.mean(x[range(i,i+J)], dim=0) for i in range(0,len(x),J)]) 
-        logits = self.lin2(self.relu(self.lin1(features)))
+        logits = self.lin2(features)
+        # logits = self.lin2(self.relu(self.lin1(features)))
         return logits
 
 def AutoencoderLoss(x, model):
@@ -79,7 +80,7 @@ def AutoencoderLoss(x, model):
         encoded, x_hat = model(x)
         for e in encoded:
             loss += e.norm(1)
-        loss = loss*0.25/len(x)
+        loss = loss*0.25/(len(x)*K)
         loss += MSE(x_hat, x)
 
     return loss.item()
@@ -95,7 +96,7 @@ def AutoencoderBatchedLoss(x, model):
                 loss += e.norm(1)*l
             loss += MSE(x_hat, x_batch)/len(x)
 
-    return loss.item()
+    return loss
 
 def ClassifierLoss(x,y,ae,model):
     with torch.no_grad():
@@ -108,7 +109,6 @@ def ClassifierLoss(x,y,ae,model):
     return loss
 
 def ClassifierAccuracy(x,y,ae,model):
-
     with torch.no_grad():
         acc = 0
         for x_batch,y_batch in zip(x,y):
@@ -116,6 +116,18 @@ def ClassifierAccuracy(x,y,ae,model):
             logits = model(x_batch)
             acc += (torch.argmax(F.log_softmax(logits,dim=1),dim=1) == y_batch).float().mean()/len(x)
     return acc
+
+def ClassifierEvaluate(x,y,ae,model):
+    with torch.no_grad():
+        acc = 0
+        loss = 0
+        CrossEntropy = nn.CrossEntropyLoss()
+        for x_batch,y_batch in zip(x,y):
+            x_batch, _ = ae(x_batch)
+            logits = model(x_batch)
+            loss += CrossEntropy(logits,y_batch)/len(x)
+            acc += (torch.argmax(F.log_softmax(logits,dim=1),dim=1) == y_batch).float().mean()/len(x)
+    return loss, acc
 
 def ConfusionMat(x,y,ae,model,plot=True):
     with torch.no_grad():
@@ -240,6 +252,7 @@ cl_train_accuracy = []
 cl_test_accuracy = []
 
 for epoch in range(cl_epochs):
+    print(f"epoch: {epoch+1}/{cl_epochs}")
     for x, y in zip(x_train,y_train):
         cl_opt.zero_grad()
         with torch.no_grad():
@@ -250,17 +263,19 @@ for epoch in range(cl_epochs):
         cl_opt.step()
     
     cl.eval()
-    cl_train_loss.append(ClassifierLoss(x_train,y_train,ae,cl))
-    cl_test_loss.append(ClassifierLoss(x_test,y_test,ae,cl))
-    cl_train_accuracy.append(ClassifierAccuracy(x_train,y_train,ae,cl))
-    cl_test_accuracy.append(ClassifierAccuracy(x_test,y_test,ae,cl))
+    train_loss,train_accuracy = ClassifierEvaluate(x_train,y_train,cl)
+    test_loss,test_accuracy = ClassifierEvaluate(x_test,y_test,cl)
     cl.train()
-    
-    print(f"epoch: {epoch+1}/{cl_epochs}")
-    print(f"train loss is: {cl_train_loss[-1]}")
-    print(f"test loss is: {cl_test_loss[-1]}")
-    print(f"train accuracy is: {cl_train_accuracy[-1]}")
-    print(f"test accuracy is: {cl_test_accuracy[-1]}")
+
+    cl_train_loss.append(train_loss)
+    cl_test_loss.append(test_loss) 
+    cl_train_accuracy.append(train_accuracy)
+    cl_test_accuracy.append(test_accuracy)
+
+    print(f"train loss is: {train_loss}")
+    print(f"test loss is: {test_loss}")
+    print(f"train accuracy is: {train_accuracy}")
+    print(f"test accuracy is: {test_accuracy}")
 
 plt.figure(figsize=(15,9))
 plt.plot(range(1,cl_epochs+1),cl_train_loss,label='Train Loss')

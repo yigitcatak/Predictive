@@ -70,15 +70,15 @@ for name in FanEnd:
 
     # group segments so that sample integrity is kept during the shuffling
     train = GroupSamples(train,J)
-    temp = list(zip(train,y_train))
-    Random(Seed).shuffle(temp)
-    train, y_train = zip(*temp)
-    train = Flatten(train)
-
+    train = list(zip(train,y_train))
+    
     x_mixed_train += train
     x_mixed_test += test
-    y_mixed_train += y_train
     y_mixed_test += y_test
+
+Random(Seed).shuffle(x_mixed_train)
+x_mixed_train, y_mixed_train = zip(*x_mixed_train)
+x_mixed_train = Flatten(x_mixed_train)
 
 x_mixed_train, mean, eigen_vecs, diagonal_mat = Whiten(x_mixed_train)
 x_mixed_test = Whiten(x_mixed_test, mean, eigen_vecs, diagonal_mat)
