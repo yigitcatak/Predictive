@@ -1,60 +1,88 @@
 #%%
+# Definitions
 import torch
-from torch import random
 import torch.nn as nn
 import torch.nn.functional as F
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy import linalg
 from os import listdir
 from os.path import isfile, join
-from random import shuffle
-from sklearn.metrics import confusion_matrix
-import seaborn as sns
+from random import shuffle, randint, Random
+import matplotlib.pyplot as plt
 
-SampleLength = 6400
-N = 160 # input dim
-K = 400 # encoding dim
-J = int(SampleLength/N) # number of segments in a sample
-AllFiles = [f for f in listdir('dataset_paderborn/segmented')]
-ClassCount = 4
+Class_Count = 3
+Subband_Count = 1
+Channel_Count = 1
+Sample_Length = 1200
+N = 160
+K = 200
+J = int(Sample_Length/N)
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-print('Device: {}'.format(device))
-
-use_presplit = False
-update_presplit = True
-
-class TiedAutoencoder(nn.Module):
+class Arxiv(nn.Module):
     def __init__(self):
-        super(TiedAutoencoder,self).__init__()
-        self.Encoder = nn.Linear(N, K, bias=False)
-    
+        super(Arxiv,self).__init__()
+
+        self.ChannelNumber = Subband_Count*Class_Count #10
+        self.LinSize = int(N*self.ChannelNumber/2) #20
+        self.LinSize2 = int(self.LinSize/3)+(10-int(self.LinSize/3)%10) #70
+
+        self.drp1 = nn.Dropout(p = 0.1)
+        self.flat = nn.Flatten()
+        self.relu = nn.ReLU()
+
+        # ENCODER
+        self.conv1 = nn.Conv2d(1, 40, (Channel_Count,1))
+        self.conv2 = nn.Conv2d(40,40,(1,Channel_Count),2)
+        self.conv3 = nn.Conv2d(40,40, (1,11),padding=(0,5))
+
+        # LINEAR
+        self.lin1 = nn.Linear(int(N/2)*40,800)
+        self.lin2 = nn.Linear(800,K)
+        self.lin3 = nn.Linear(K,800)
+        self.lin4 = nn.Linear(800,int(N/2)*40)
+
+        # DECODER
+        self.tconv1 = nn.ConvTranspose2d(40, 1, (Channel_Count,1))
+        self.tconv2 = nn.ConvTranspose2d(40,40,(1,Channel_Count),2) if Channel_Count == 2 else nn.ConvTranspose2d(40,40,(1,Channel_Count),2,output_padding=(0,1)) 
+        self.tconv3 = nn.ConvTranspose2d(40,40,(1,11),padding=(0,5))
+
     def forward(self,x):
-        encoded_features = F.relu(self.Encoder(x))
-        reconstructed = F.linear(encoded_features, self.Encoder.weight.t())
-        return encoded_features, reconstructed
+        encoder_out = self.conv3(self.relu(self.drp1(self.relu(self.conv2(self.drp1(self.conv1(x)))))))
+        encoder_out = self.lin1(self.flat(encoder_out))
+        bottleneck = self.lin2(encoder_out)
+        decoder_out = torch.reshape(self.lin4(self.lin3(bottleneck)),(-1,40,1,int(N/2)))
+        decoder_out = self.tconv1(self.drp1(self.relu(self.tconv2(self.drp1(self.relu(self.tconv3(decoder_out)))))))
+
+        return bottleneck, decoder_out
 
 class Classifier(nn.Module):
-    def __init__(self,Wloc=None):
+    def __init__(self):
         super(Classifier,self).__init__()
+        # self.lin1 = nn.Linear(K, K, bias=False)
+        self.lin2 = nn.Linear(K, Class_Count, bias=False)
+        self.relu = nn.ReLU()
 
-        self.Wloc = nn.Linear(N,K)
-        self.Linear = nn.Linear(K, ClassCount, bias=False)
-
-        if Wloc is not None:
-            self.Wloc.weight = nn.Parameter(Wloc, requires_grad=False)
-        
     def forward(self,x):
-        with torch.no_grad():
-            local_features = F.relu(self.Wloc(x))
         # get the mean segment of each J segment
-        features = torch.stack([torch.mean(local_features[i:i+J], dim=0) for i in range(0,len(local_features),J)])
-        logits = self.Linear(features)
+        features = torch.stack([torch.mean(x[range(i,i+J)], dim=0) for i in range(0,len(x),J)]) 
+        logits = self.lin2(features)
+        # logits = self.lin2(self.relu(self.lin1(features)))
         return logits
 
 def AutoencoderLoss(x, model):
+    with torch.no_grad():
+        loss = 0
+        MSE = nn.MSELoss()
+        encoded, x_hat = model(x)
+        for e in encoded:
+            loss += e.norm(1)
+        loss = loss*0.25/(len(x))
+        loss += MSE(x_hat, x)
+
+    return loss.item()
+
+def AutoencoderBatchedLoss(x, model):
     with torch.no_grad():
         loss = 0
         MSE = nn.MSELoss()
@@ -64,205 +92,133 @@ def AutoencoderLoss(x, model):
             for e in encoded:
                 loss += e.norm(1)*l
             loss += MSE(x_hat, x_batch)/len(x)
-        return loss
 
-def ClassifierLossAcc(x,y,model):
+    return loss.item()
+
+def ClassifierLoss(x,y,ae,model):
     with torch.no_grad():
-        CrossEntropy = nn.CrossEntropyLoss()
         loss = 0
+        for x_batch,y_batch in zip(x,y):
+            x_batch, _ = ae(x_batch)
+            logits = model(x_batch)
+            CrossEntropy = nn.CrossEntropyLoss()
+            loss += CrossEntropy(logits,y_batch)/len(x)
+    return loss.item()
+
+def ClassifierAccuracy(x,y,ae,model):
+    with torch.no_grad():
         acc = 0
         for x_batch,y_batch in zip(x,y):
+            x_batch, _ = ae(x_batch)
+            logits = model(x_batch)
+            acc += (torch.argmax(F.log_softmax(logits,dim=1),dim=1) == y_batch).float().mean()/len(x)
+    return acc.item()
+
+def ClassifierEvaluate(x,y,ae,model):
+    with torch.no_grad():
+        acc = 0
+        loss = 0
+        CrossEntropy = nn.CrossEntropyLoss()
+        for x_batch,y_batch in zip(x,y):
+            x_batch, _ = ae(x_batch)
             logits = model(x_batch)
             loss += CrossEntropy(logits,y_batch)/len(x)
             acc += (torch.argmax(F.log_softmax(logits,dim=1),dim=1) == y_batch).float().mean()/len(x)
+    return loss.item(), acc.item()
 
-        return loss, acc
-
-def ClassifierAccuracy(x,y,model):
-    with torch.no_grad():
-        acc = 0
-        for x_batch,y_batch in zip(x,y):
-            logits = model(x_batch)
-            acc += (torch.argmax(F.log_softmax(logits,dim=1),dim=1) == y_batch).float().mean()/len(x)
-    return acc
-
-def Whiten(x, mean=None, eigenVecs=None, diagonal_mat=None ):
-    #need to type-check because comparing numpy array with None directly 
-    #(array == None) raises an error
-    t = type(None)
-    if (type(mean) == t) or (type(eigenVecs) == t) or (type(diagonal_mat) == t):
-        x = np.array(x)
-        mean = x.mean(axis=0)
-        x -= mean
-        cov = np.cov(x, rowvar=False) #unbiased / divided by N-1
-        eigenVals, eigenVecs = np.linalg.eigh(cov)
-        diagonal_mat = np.diag(1.0/((eigenVals)**0.5))
-
-        intermediate_mat = np.dot(eigenVecs, diagonal_mat)
-        whitened = np.dot(x, intermediate_mat)
-
-        #uncorrelated = np.dot(x,eigenVecs)
-        #whitened = np.dot(uncorrelated, diagonal_mat)
-        return whitened, mean, eigenVecs, diagonal_mat
-    else:
-        x = np.array(x)
-        x -= mean
-        
-        intermediate_mat = np.dot(eigenVecs, diagonal_mat)
-        whitened = np.dot(x, intermediate_mat)
-
-        #uncorrelated = np.dot(x,eigenVecs)
-        #whitened = np.dot(uncorrelated, diagonal_mat)
-        return whitened
-
-def GroupSamples(l, J):
+def Batch(l, J):
     def inner():
         for i in range(0, len(l)-(len(l)%J), J):
             yield l[i:i + J]
+
     return list(inner())
 
-def Flatten(l):
+def Flatten(l): #Unpack Grouped segments
     def inner():
         for i in l:
             for j in i:
                 yield(j)
     return list(inner())
 
-def ConfusionMat(x,y,ae,model,plot=True):
-    # GPU'da hata veriyor, confusion_matrix() fonksiyonu, CPU'da çalıştırın
-    with torch.no_grad():
-        logits = model(x)
-        pred = torch.argmax(F.log_softmax(logits,dim=1),dim=1)
-        cm = confusion_matrix(y,pred)
-    
-    if plot:
-        plt.figure(figsize=(15,9))
-        ax = sns.heatmap(cm, annot=True, fmt='d', linewidths=.5, square=True)
-        plt.title('Confusion Matrix')
-        plt.xlabel('Predicted')
-        plt.ylabel('Actual')
-    return cm
+# Read Data
+if Channel_Count == 1:
+    x_train = torch.load('datasets/Paderborn/presplit/arxiv_singlechannel/x_train.pt')
+    y_train = torch.load('datasets/Paderborn/presplit/arxiv_singlechannel/y_train.pt')
+    x_test = torch.load('datasets/Paderborn/presplit/arxiv_singlechannel/x_test.pt')
+    y_test = torch.load('datasets/Paderborn/presplit/arxiv_singlechannel/y_test.pt')
 
-# GroupSamples ile aynı şu an ama ben dosya okumayı tamamen ayrı .py dosyasına aldım
-# O yüzden böyle eklemiştim burada da Batch olarak kalsın ismen daha anlaşılır olur
-def Batch(l,J):
-    def inner():
-        for i in range(0, len(l)-(len(l)%J),J):
-            yield l[i:i+J]
-    return list(inner())
+if Channel_Count == 2:
+    x_train = torch.load('datasets/Paderborn/presplit/arxiv_multichannel/x_train.pt')
+    y_train = torch.load('datasets/Paderborn/presplit/arxiv_multichannel/y_train.pt')
+    x_test = torch.load('datasets/Paderborn/presplit/arxiv_multichannel/x_test.pt')
+    y_test = torch.load('datasets/Paderborn/presplit/arxiv_multichannel/y_test.pt')
 
-#%%
-# READ DATA
-use_presplit = False
-if not use_presplit:
-   
-    x_mixed_train = []
-    x_mixed_test = []
-    y_mixed_train = []
-    y_mixed_test = []
+weights = torch.load('saves/Paderborn_Class_Weights.pt')
 
-    for name in AllFiles:
-        df = pd.read_csv(f'dataset_paderborn/segmented/{name}')
-        data = df.drop(['label'], axis=1).values.tolist()[:len(df)-len(df)%J]
-        label = df['label'].values.tolist()[:len(df)-len(df)%J:J]  # sıkıntı var
-        if ('K002' in name) or ('KA01' in name) or ('KA05' in name) or ('KA07' in name) or ('KI01' in name) or ('KI05' in name) or ('KI07' in name): 
-            
-            # get every Jth label as the labels are given with the average of J segments to classifier
-            train = data
-            y_train = label
-            
-            train = GroupSamples(train,J)
-            temp = list(zip(train,y_train))
-            shuffle(temp)
-            train, y_train = zip(*temp)
-            train = Flatten(train)
-            x_mixed_train += train
-            y_mixed_train += y_train
+# Cuda
+x_train = x_train.cuda()
+x_test = x_test.cuda()
+y_train = y_train.cuda()
+y_test = y_test.cuda()
+weights = weights.cuda()
 
-        elif ('K001' in name) or ('KA22' in name) or ('KA04' in name) or ('KA15' in name) or ('KA30' in name) or ('KA16' in name) or ('KI14' in name) or ('KI21' in name) or ('KI17' in name) or ('KI18' in name) or ('KI16' in name) :
-            x_mixed_test += data
-            y_mixed_test += label
+# Autoencoder
+x_test = Batch(x_test,J*128)
+y_test = Batch(y_test,128)
+ae = Arxiv().cuda()
 
-        
-    x_mixed_train, mean, eigenVecs, diagonal_mat = Whiten(x_mixed_train)
-    x_mixed_test = Whiten(x_mixed_test, mean, eigenVecs, diagonal_mat)
-
-    x_mixed_train = torch.tensor(x_mixed_train,dtype=torch.float32)
-    x_mixed_test = torch.tensor(x_mixed_test,dtype=torch.float32)
-    
-    y_mixed_train = torch.tensor(y_mixed_train,dtype=torch.long)
-    y_mixed_test = torch.tensor(y_mixed_test,dtype=torch.long)
-
-    if update_presplit:
-        torch.save(x_mixed_train,'dataset_paderborn/presplit/x_mixed_train.pt')
-        torch.save(x_mixed_test,'dataset_paderborn/presplit/x_mixed_test.pt')
-        torch.save(y_mixed_train,'dataset_paderborn/presplit/y_mixed_train.pt')
-        torch.save(y_mixed_test,'dataset_paderborn/presplit/y_mixed_test.pt')
-
-else: #use pre-split data
-    x_mixed_train = torch.load('dataset_paderborn/presplit/x_mixed_train.pt')
-    x_mixed_test = torch.load('dataset_paderborn/presplit/x_mixed_test.pt')
-    y_mixed_train = torch.load('dataset_paderborn/presplit/y_mixed_train.pt')
-    y_mixed_test = torch.load('dataset_paderborn/presplit/y_mixed_test.pt')
-
-x_mixed_train = x_mixed_train.to(device)
-x_mixed_test = x_mixed_test.to(device)
-y_mixed_train = y_mixed_train.to(device)
-y_mixed_test = y_mixed_test.to(device)
-
-#%%
-# train datası zaten shuffled, her segmentte J timeseries datapoint ardışık olacak şekilde
-# önce gruplanıp, labelları ile eşleştirilip öyle shufflelandı, eğer random crossval
-# alacaksanız yine aynı şekilde önce gruplamanız gerekir
-# ya da zaten shuffled diye doğrudan ayırabilirsiniz %100/k noktalarından
-
-
-
-# bunların uzunuluğu ne kadar oluyor bilmediğim için şimdilik ufak tutmaya çalıştım
-# her bir batch 50 segmente olacak şekilde aldım
-x_mixed_train = Batch(x_mixed_train, 50*J)
-x_mixed_test = Batch(x_mixed_test, 50*J)
-y_mixed_train = Batch(y_mixed_train, 50)
-y_mixed_test = Batch(y_mixed_test, 50)
-
-print('Training Autoencoder')
-
-autoencoder = TiedAutoencoder().to(device)
-ae_opt = torch.optim.LBFGS(autoencoder.parameters(), lr=1e-2)
 MSE = nn.MSELoss()
-ae_epochs = 10
+ae_opt = torch.optim.Adam(ae.parameters(), lr=2e-4)
+ae_epochs = 4
 
-ae_test_loss = []
+ae_train_history = []
+ae_test_history = []
+
 for epoch in range(ae_epochs):
-    print(f'AE training epoch: {epoch+1}/{ae_epochs}')
-    for x_batch in x_mixed_train:
-        def closure():
-            ae_opt.zero_grad()
-            encoded_features, reconstructed = autoencoder(x_batch)
-            loss = 0
-            for e in encoded_features:
-                loss += e.norm(1)
-            loss = loss * 0.25/len(x_batch)
-            loss += MSE(reconstructed, x_batch)
-            loss.backward()
-            return loss
-        ae_opt.step(closure)
-
-    # Her batch için değil, her epoch için loss hesapla
-    autoencoder.eval()
-    ae_test_loss.append(AutoencoderLoss(x_mixed_test, autoencoder))
-    autoencoder.train()
-    print(f'AE validation loss: {ae_test_loss[-1]}')
+    ae_opt.zero_grad()
+    encoded_features, reconstructed = ae(x_train)
+    loss = 0
+    for x in encoded_features:
+        loss += x.norm(1)
+    loss = loss*0.25/(len(x_train)*K)
+    loss += MSE(reconstructed, x_train)
+    loss.backward()
+    ae_opt.step()
     
-for w in autoencoder.parameters():
-    Wloc = w.detach().clone()
+    ae.eval()
+    ae_train_history.append(AutoencoderLoss(x_train,ae))
+    ae_test_history.append(AutoencoderBatchedLoss(x_test,ae))
+    ae.train()
+    print(f'epoch: {epoch+1}/{ae_epochs}')
+    print(f'train loss: {ae_train_history[-1]}')
+    print(f'test loss: {ae_test_history[-1]}')
 
-print('Training Classifier')
 
-classifier = Classifier(Wloc).to(device)
-cl_opt = torch.optim.Adam(classifier.parameters(), lr=3e-2)
-CrossEntropy = nn.CrossEntropyLoss()
-cl_epochs = 1000
+plt.figure(figsize=(15,9))
+plt.plot(range(1,ae_epochs+1),ae_train_history,label='train loss')
+plt.plot(range(1,ae_epochs+1),ae_test_history,label='test loss')
+plt.xlim(1,ae_epochs)
+plt.title('Train Loss vs Epochs Passed')
+plt.xlabel('Epoch')
+plt.ylabel('MSE + L1 Norm')
+plt.legend()
+plt.show()
+
+# torch.save(ae.state_dict(),'saves/Arxiv_20.pt')
+
+# Classifier
+x_train = Batch(x_train,J*128)
+y_train = Batch(y_train,128)
+
+# ae = Arxiv().cuda()
+# ae.load_state_dict(torch.load('saves/Arxiv_40.pt'))
+ae.eval()
+
+CrossEntropy = nn.CrossEntropyLoss(weight=weights)
+
+cl = Classifier().cuda()
+cl_opt = torch.optim.Adam(cl.parameters(), lr=1e-1)
+cl_epochs = 100
 
 cl_train_loss = []
 cl_test_loss = []
@@ -270,33 +226,30 @@ cl_train_accuracy = []
 cl_test_accuracy = []
 
 for epoch in range(cl_epochs):
-    print(f'CL training epoch: {epoch+1}/{cl_epochs}')
-    for x_batch, y_batch in zip(x_mixed_train,y_mixed_train):
+    print(f"epoch: {epoch+1}/{cl_epochs}")
+    for x, y in zip(x_train,y_train):
         cl_opt.zero_grad()
-        logits = classifier(x_batch)
-        loss = CrossEntropy(logits, y_batch)
+        with torch.no_grad():
+            encoded, _  = ae(x)
+        logits = cl(encoded)
+        loss = CrossEntropy(logits, y)
         loss.backward()
         cl_opt.step()
-    
-    classifier.eval()
-    val_loss, val_acc = ClassifierLossAcc(x_mixed_test,y_mixed_test,classifier)
-    train_loss, train_acc = ClassifierLossAcc(x_mixed_train,y_mixed_train,classifier)
-    classifier.train()
-    cl_train_loss.append(train_loss)
-    cl_train_accuracy.append(train_acc)
-    cl_test_loss.append(val_loss)
-    cl_test_accuracy.append(val_acc)
-    
-    print(f'CL train loss: {cl_train_loss[-1]}')
-    print(f'CL train accuracy: {cl_test_loss[-1]}')
-    print(f'CL validation loss: {cl_train_accuracy[-1]}')
-    print(f'CL validation accuracy: {cl_test_accuracy[-1]}')
-          
+        
+    cl.eval()
+    train_loss,train_accuracy = ClassifierEvaluate(x_train,y_train,ae,cl)
+    test_loss,test_accuracy = ClassifierEvaluate(x_test,y_test,ae,cl)
+    cl.train()
 
-pd.DataFrame(cl_train_loss).to_csv('train_loss.csv',index=False)
-pd.DataFrame(cl_test_loss).to_csv('train_acc.csv',index=False)
-pd.DataFrame(cl_train_accuracy).to_csv('test_loss.csv',index=False)
-pd.DataFrame(cl_test_accuracy).to_csv('test_acc.csv',index=False)
+    cl_train_loss.append(train_loss)
+    cl_test_loss.append(test_loss) 
+    cl_train_accuracy.append(train_accuracy)
+    cl_test_accuracy.append(test_accuracy)
+
+    print(f"train loss is: {train_loss}")
+    print(f"test loss is: {test_loss}")
+    print(f"train accuracy is: {train_accuracy}")
+    print(f"test accuracy is: {test_accuracy}")
 
 plt.figure(figsize=(15,9))
 plt.plot(range(1,cl_epochs+1),cl_train_loss,label='Train Loss')
@@ -306,7 +259,7 @@ plt.title('Loss vs Epochs')
 plt.xlabel('Epoch')
 plt.ylabel('Cross Entropy Loss')
 plt.legend()
-plt.savefig('Loss.png', bbox_inches='tight')
+plt.show()
 
 plt.figure(figsize=(15,9))
 plt.plot(range(1,cl_epochs+1),cl_train_accuracy,label='Train Accuracy')
@@ -316,14 +269,6 @@ plt.title('Accuracy vs Epochs')
 plt.xlabel('Epoch')
 plt.ylabel('Accuracy')
 plt.legend()
-plt.savefig('Accuracy.png', bbox_inches='tight')
+plt.show()
 
-
-# Classifier'ı kaydetmek istersen
-
-# torch.save(classifier.state_dict(),'konum/dosyaismi.pt')
-
-# Geri yüklemek için
-
-# classifier = Classifier()
-# classifier.load_state_dict(torch.load('dosyaismi.pt'))
+# torch.save(cl.state_dict(),'saves/Arxiv_20_Classifier.pt')

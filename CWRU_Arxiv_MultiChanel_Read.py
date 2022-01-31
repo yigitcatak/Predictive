@@ -10,8 +10,8 @@ from random import shuffle, randint, Random
 Sample_Length = 1200
 N = 30
 J = int(Sample_Length/N)
-FanEnd = [f for f in listdir('CWRU/segmented/fanend')]
-DriveEnd = [f for f in listdir('CWRU/segmented/driveend')]
+FanEnd = [f for f in listdir('datasets/CWRU/segmented/fanend')]
+DriveEnd = [f for f in listdir('datasets/CWRU/segmented/driveend')]
 
 Seed = randint(0,1e6)
 
@@ -56,7 +56,7 @@ y_mixed_train = []
 y_mixed_test = []
 
 for name in FanEnd:
-    df = pd.read_csv(f'CWRU/segmented/fanend/{name}')
+    df = pd.read_csv(f'datasets/CWRU/segmented/fanend/{name}')
 
     # discard segments that does not fill a sample
     data = df.drop(['label'], axis=1).values.tolist()[:len(df)-len(df)%J]
@@ -95,7 +95,7 @@ x_mixed_train2 = []
 x_mixed_test2 = []
 
 for name in DriveEnd:
-    df = pd.read_csv(f'CWRU/segmented/driveend/{name}')
+    df = pd.read_csv(f'datasets/CWRU/segmented/driveend/{name}')
 
     # discard segments that does not fill a sample
     data = df.drop(['label'], axis=1).values.tolist()[:len(df)-len(df)%J]
@@ -128,7 +128,7 @@ x_test = torch.cat([torch.unsqueeze(x_mixed_test,dim=1),torch.unsqueeze(x_mixed_
 x_train = torch.unsqueeze(x_train,dim=1)
 x_test = torch.unsqueeze(x_test,dim=1)
 
-torch.save(x_train,'CWRU/presplit/arxiv_multichannel/x_train.pt')
-torch.save(x_test,'CWRU/presplit/arxiv_multichannel/x_test.pt')
-torch.save(y_train,'CWRU/presplit/arxiv_multichannel/y_train.pt')
-torch.save(y_test,'CWRU/presplit/arxiv_multichannel/y_test.pt')
+torch.save(x_train,'datasets/CWRU/presplit/arxiv_multichannel/x_train.pt')
+torch.save(x_test,'datasets/CWRU/presplit/arxiv_multichannel/x_test.pt')
+torch.save(y_train,'datasets/CWRU/presplit/arxiv_multichannel/y_train.pt')
+torch.save(y_test,'datasets/CWRU/presplit/arxiv_multichannel/y_test.pt')

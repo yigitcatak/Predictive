@@ -8,8 +8,8 @@ from random import shuffle
 Sample_Length = 1200
 N = 30
 J = int(Sample_Length/N)
-FanEnd = [f for f in listdir('CWRU/segmented/fanend')]
-DriveEnd = [f for f in listdir('CWRU/segmented/driveend')]
+FanEnd = [f for f in listdir('datasets/CWRU/segmented/fanend')]
+DriveEnd = [f for f in listdir('datasets/CWRU/segmented/driveend')]
 
 Class_Weights = dict(zip(list(range(10)),list(0 for i in range(10))))
 
@@ -54,17 +54,20 @@ y_train = []
 y_test = []
 
 for name in FanEnd:
-    df = pd.read_csv(f'CWRU/segmented/fanend/{name}')
+    df = pd.read_csv(f'datasets/CWRU/segmented/fanend/{name}')
     data = df.drop(['label'], axis=1).values.tolist()[:len(df)-len(df)%J]
 
     # We keep 1 label for each J segment, for memory efficicency
     label = df['label'].values.tolist()[:len(data):J]
-    Class_Weights[label[0]] += len(label)
+    
 
     idx = int(len(label)*0.1)
     train = data[0:idx*J]
     test = data[idx*J:]
     train_label = label[0:idx]
+
+    Class_Weights[label[0]] += len(train_label)
+    
     test_label = label[idx:]
 
     # Group J consecutive segments and stick them with their labels
@@ -92,7 +95,7 @@ Class_Weights = 1/Class_Weights
 Class_Weights = Class_Weights/Class_Weights.sum()
 
 torch.save(Class_Weights,'saves/CWRU_Class_Weights.pt')
-torch.save(x_train,'CWRU/presplit/nsaelcn/x_train.pt')
-torch.save(x_test,'CWRU/presplit/nsaelcn/x_test.pt')
-torch.save(y_train,'CWRU/presplit/nsaelcn/y_train.pt')
-torch.save(y_test,'CWRU/presplit/nsaelcn/y_test.pt')
+torch.save(x_train,'datasets/CWRU/presplit/nsaelcn/x_train.pt')
+torch.save(x_test,'datasets/CWRU/presplit/nsaelcn/x_test.pt')
+torch.save(y_train,'datasets/CWRU/presplit/nsaelcn/y_train.pt')
+torch.save(y_test,'datasets/CWRU/presplit/nsaelcn/y_test.pt')

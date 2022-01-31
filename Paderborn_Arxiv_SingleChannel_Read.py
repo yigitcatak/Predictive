@@ -1,3 +1,4 @@
+#%%
 import torch
 import pandas as pd
 import numpy as np
@@ -5,12 +6,11 @@ from scipy import linalg
 from os import listdir
 from random import shuffle, randint, Random
 
-Sample_Length = 1200
-N = 30
+Sample_Length = 6400
+N = 160
 J = int(Sample_Length/N)
-FanEnd = [f for f in listdir('datasets/CWRU/segmented/fanend')]
-DriveEnd = [f for f in listdir('datasets/CWRU/segmented/driveend')]
-
+All_Files = [f for f in listdir('datasets/Paderborn/segmented')]
+Class_Weights = dict(zip(list(range(3)),list(0 for i in range(3))))
 Seed = randint(0,1e6)
 
 def GroupSamples(l, J): #Group J segments together
@@ -53,28 +53,29 @@ x_mixed_test = []
 y_mixed_train = []
 y_mixed_test = []
 
-for name in FanEnd:
-    df = pd.read_csv(f'datasets/CWRU/segmented/fanend/{name}')
+train_names = ['K002','KA01','KA05','KA07','KI01','KI05','KI07']
+
+for name in All_Files:
+    df = pd.read_csv(f'datasets/Paderborn/segmented/{name}')
+    name = name[-11:-7]
 
     # discard segments that does not fill a sample
     data = df.drop(['label'], axis=1).values.tolist()[:len(df)-len(df)%J]
     # get every Jth label as the labels are given with the average of J segments to classifier
     label = df['label'].values.tolist()[:len(data):J]
 
-    # spare first 25% for training
-    idx = int(len(label)*0.1)
-    train = data[0:idx*J]
-    test = data[idx*J:]
-    y_train = label[0:idx]
-    y_test = label[idx:]
+    if name in train_names:
+        train = data
+        y_train = label
+        train = GroupSamples(train,J)
+        train = list(zip(train,y_train))
+        x_mixed_train += train
 
-    # group segments so that sample integrity is kept during the shuffling
-    train = GroupSamples(train,J)
-    train = list(zip(train,y_train))
-    
-    x_mixed_train += train
-    x_mixed_test += test
-    y_mixed_test += y_test
+        Class_Weights[label[0]] += len(train)
+
+    else:
+        x_mixed_test += data
+        y_mixed_test += label
 
 Random(Seed).shuffle(x_mixed_train)
 x_mixed_train, y_mixed_train = zip(*x_mixed_train)
@@ -91,7 +92,12 @@ y_test = torch.tensor(y_mixed_test,dtype=torch.long)
 x_train = torch.unsqueeze(torch.unsqueeze(x_mixed_train,dim=1),dim=1)
 x_test = torch.unsqueeze(torch.unsqueeze(x_mixed_test,dim=1),dim=1)
 
-torch.save(x_train,'datasets/CWRU/presplit/arxiv_singlechannel/x_train.pt')
-torch.save(x_test,'datasets/CWRU/presplit/arxiv_singlechannel/x_test.pt')
-torch.save(y_train,'datasets/CWRU/presplit/arxiv_singlechannel/y_train.pt')
-torch.save(y_test,'datasets/CWRU/presplit/arxiv_singlechannel/y_test.pt')
+Class_Weights = torch.tensor(list(Class_Weights.values()),dtype=torch.float32)
+Class_Weights = 1/Class_Weights
+Class_Weights = Class_Weights/Class_Weights.sum()
+
+torch.save(Class_Weights,'saves/Paderborn_Class_Weights.pt')
+torch.save(x_train,'datasets/Paderborn/presplit/arxiv_singlechannel/x_train.pt')
+torch.save(x_test,'datasets/Paderborn/presplit/arxiv_singlechannel/x_test.pt')
+torch.save(y_train,'datasets/Paderborn/presplit/arxiv_singlechannel/y_train.pt')
+torch.save(y_test,'datasets/Paderborn/presplit/arxiv_singlechannel/y_test.pt')

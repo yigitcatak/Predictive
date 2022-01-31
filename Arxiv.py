@@ -10,8 +10,6 @@ from os import listdir
 from os.path import isfile, join
 from random import shuffle, randint, Random
 import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix
-import seaborn as sns
 
 Class_Count = 10
 Subband_Count = 1
@@ -129,21 +127,6 @@ def ClassifierEvaluate(x,y,ae,model):
             acc += (torch.argmax(F.log_softmax(logits,dim=1),dim=1) == y_batch).float().mean()/len(x)
     return loss.item(), acc.item()
 
-def ConfusionMat(x,y,ae,model,plot=True):
-    with torch.no_grad():
-        x, _ = ae(x)
-        logits = model(x)
-        pred = torch.argmax(F.log_softmax(logits,dim=1),dim=1)
-        cm = confusion_matrix(y,pred)
-    
-    if plot:
-        plt.figure(figsize=(15,9))
-        ax = sns.heatmap(cm, annot=True, fmt='d', linewidths=.5, square=True)
-        plt.title('Confusion Matrix')
-        plt.xlabel('Predicted')
-        plt.ylabel('Actual')
-    return cm
-
 def Batch(l, J):
     def inner():
         for i in range(0, len(l)-(len(l)%J), J):
@@ -173,20 +156,12 @@ if Channel_Count == 2:
 
 weights = torch.load('saves/CWRU_Class_Weights.pt')
 
-# Confusion Matrix
-# ae = Arxiv()
-# cl = Classifier()
-# ae.load_state_dict(torch.load('saves/Arxiv.pt'))
-# cl.load_state_dict(torch.load('saves/Arxiv_Classifier.pt'))
-# cm = ConfusionMat(x_test, y_test, ae, cl)
-
 # Cuda
-device = torch.device("cuda")
-x_train = x_train.to(device)
-x_test = x_test.to(device)
-y_train = y_train.to(device)
-y_test = y_test.to(device)
-weights = weights.to(device)
+x_train = x_train.cuda()
+x_test = x_test.cuda()
+y_train = y_train.cuda()
+y_test = y_test.cuda()
+weights = weights.cuda()
 
 # Autoencoder
 x_test = Batch(x_test,J*128)
