@@ -165,6 +165,8 @@ weights = weights.cuda()
 # Autoencoder
 x_test = Batch(x_test,J*128)
 y_test = Batch(y_test,128)
+x_train = Batch(x_train,J*128)
+y_train = Batch(y_train,128)
 ae = Arxiv().cuda()
 
 MSE = nn.MSELoss()
@@ -175,21 +177,23 @@ ae_train_history = []
 ae_test_history = []
 
 for epoch in range(ae_epochs):
-    ae_opt.zero_grad()
-    encoded_features, reconstructed = ae(x_train)
-    loss = 0
-    for x in encoded_features:
-        loss += x.norm(1)
-    loss = loss*0.25/(len(x_train)*K)
-    loss += MSE(reconstructed, x_train)
-    loss.backward()
-    ae_opt.step()
+    print(f'epoch: {epoch+1}/{ae_epochs}')
+    for x in x_train:
+        ae_opt.zero_grad()
+        encoded_features, reconstructed = ae(x)
+        loss = 0
+        for feature in encoded_features:
+            loss += feature.norm(1)
+        loss = loss*0.25/(len(x))
+        loss += MSE(reconstructed, x)
+        loss.backward()
+        ae_opt.step()
     
     ae.eval()
-    ae_train_history.append(AutoencoderLoss(x_train,ae))
+    ae_train_history.append(AutoencoderBatchedLoss(x_train,ae))
     ae_test_history.append(AutoencoderBatchedLoss(x_test,ae))
     ae.train()
-    print(f'epoch: {epoch+1}/{ae_epochs}')
+    
     print(f'train loss: {ae_train_history[-1]}')
     print(f'test loss: {ae_test_history[-1]}')
 
@@ -204,11 +208,10 @@ plt.ylabel('MSE + L1 Norm')
 plt.legend()
 plt.show()
 
-# torch.save(ae.state_dict(),'saves/Arxiv_20.pt')
+torch.save(ae.state_dict(),'saves/Paderborn_Arxiv.pt')
 
+#%%
 # Classifier
-x_train = Batch(x_train,J*128)
-y_train = Batch(y_train,128)
 
 # ae = Arxiv().cuda()
 # ae.load_state_dict(torch.load('saves/Arxiv_40.pt'))
