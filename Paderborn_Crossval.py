@@ -14,7 +14,7 @@ SampleLength = 64000
 N = 50 # input dim
 K = 400 # encoding dim
 J = int(SampleLength/N) # number of segments in a sample
-AllFiles = [f for f in listdir('Paderborn')]
+AllFiles = [f for f in listdir('dataset_paderborn/segmented')]
 ClassCount = 3
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -136,7 +136,7 @@ for k in range(len(splits)):
     y_mixed_test = []
 
     for name in AllFiles:
-        df = pd.read_csv(f'datasets/Paderborn/{name}')
+        df = pd.read_csv(f'dataset_paderborn/segmented/{name}')
         data = df.drop(['label'], axis=1).values.tolist()[:len(df)-len(df)%J]
         label = df['label'].values.tolist()[:len(df)-len(df)%J:J]
 
@@ -170,7 +170,7 @@ for k in range(len(splits)):
     x_mixed_test = x_mixed_test.to(device)
     y_mixed_train = y_mixed_train.to(device)
     y_mixed_test = y_mixed_test.to(device)
-#%%
+
     # bunların uzunuluğu ne kadar oluyor bilmediğim için şimdilik ufak tutmaya çalıştım
     x_mixed_train = Batch(x_mixed_train, 128*J)
     x_mixed_test = Batch(x_mixed_test, 128*J)
@@ -248,21 +248,8 @@ for k in range(len(splits)):
     test_loss_all.append(cl_test_loss)
     test_acc_all.append(cl_test_accuracy)
 
-    try:
-        plt.figure(figsize=(15,9))
-        plt.plot(range(1,cl_epochs+1),cl_train_accuracy,label='Train Accuracy')
-        plt.plot(range(1,cl_epochs+1),cl_test_accuracy,label='Test Accuracy')
-        plt.xlim(1,cl_epochs)
-        plt.title(f'Accuracy vs Epochs, K = {k}')
-        plt.xlabel('Epoch')
-        plt.ylabel('Accuracy')
-        plt.legend()
-        plt.savefig(f'Accuracy{k}.png', bbox_inches='tight')
-    except:
-        print('Figure Failed')
-
-    # del x_mixed_train, x_mixed_test, y_mixed_train, y_mixed_test, autoencoder, classifier
-    # torch.cuda.empty_cache()
+    del x_mixed_train, x_mixed_test, y_mixed_train, y_mixed_test, autoencoder, classifier
+    torch.cuda.empty_cache()
 
 pd.DataFrame(train_loss_all).to_csv('train_loss_all.csv',index=False)
 pd.DataFrame(train_acc_all).to_csv('train_acc_all.csv',index=False)
