@@ -60,7 +60,7 @@ def AutoencoderLoss(x, model):
             for e in encoded:
                 loss += e.norm(1)*l
             loss += MSE(x_hat, x_batch)/len(x)
-        return loss
+        return loss.item()
 
 def ClassifierLossAcc(x,y,model):
     with torch.no_grad():
@@ -72,7 +72,7 @@ def ClassifierLossAcc(x,y,model):
             loss += CrossEntropy(logits,y_batch)/len(x)
             acc += (torch.argmax(F.log_softmax(logits,dim=1),dim=1) == y_batch).float().mean()/len(x)
 
-        return loss, acc
+        return loss.item(), acc.item()
 
 def ClassifierAccuracy(x,y,model):
     with torch.no_grad():
@@ -80,7 +80,7 @@ def ClassifierAccuracy(x,y,model):
         for x_batch,y_batch in zip(x,y):
             logits = model(x_batch)
             acc += (torch.argmax(F.log_softmax(logits,dim=1),dim=1) == y_batch).float().mean()/len(x)
-    return acc
+    return acc.item()
 
 def Whiten(x, mean=None, eigenVecs=None, diagonal_mat=None ):
     #need to type-check because comparing numpy array with None directly 
