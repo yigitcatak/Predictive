@@ -14,7 +14,7 @@ SampleLength = 64000
 N = 50 # input dim
 K = 400 # encoding dim
 J = int(SampleLength/N) # number of segments in a sample
-AllFiles = [f for f in listdir('datasets/Paderborn/segmented')]
+AllFiles = [f for f in listdir('Paderborn')]
 ClassCount = 3
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -136,7 +136,7 @@ for k in range(len(splits)):
     y_mixed_test = []
 
     for name in AllFiles:
-        df = pd.read_csv(f'datasets/Paderborn/segmented/{name}')
+        df = pd.read_csv(f'datasets/Paderborn/{name}')
         data = df.drop(['label'], axis=1).values.tolist()[:len(df)-len(df)%J]
         label = df['label'].values.tolist()[:len(df)-len(df)%J:J]
 

@@ -18,7 +18,7 @@ Subband_Count = 1
 Channel_Count = 2
 Sample_Length = 1200
 N = 30
-K = 40
+K = 20
 J = int(Sample_Length/N)
 
 class Arxiv(nn.Module):
@@ -261,7 +261,7 @@ for epoch in range(cl_epochs):
         loss = CrossEntropy(logits, y)
         loss.backward()
         cl_opt.step()
-    
+        
     cl.eval()
     train_loss,train_accuracy = ClassifierEvaluate(x_train,y_train,ae,cl)
     test_loss,test_accuracy = ClassifierEvaluate(x_test,y_test,ae,cl)
