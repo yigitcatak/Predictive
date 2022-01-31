@@ -181,7 +181,7 @@ for k in range(1):
     autoencoder = TiedAutoencoder().to(device)
     ae_opt = torch.optim.LBFGS(autoencoder.parameters(), lr=1e-2)
     MSE = nn.MSELoss()
-    ae_epochs = 1
+    ae_epochs = 10
 
     ae_validation_history = []
     for epoch in range(ae_epochs):
@@ -212,7 +212,7 @@ for k in range(1):
     classifier = Classifier(Wloc).to(device)
     cl_opt = torch.optim.Adam(classifier.parameters(), lr=3e-2)
     CrossEntropy = nn.CrossEntropyLoss()
-    cl_epochs = 1
+    cl_epochs = 1000
 
     cl_train_loss = []
     cl_test_loss = []
