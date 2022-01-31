@@ -96,7 +96,7 @@ def AutoencoderBatchedLoss(x, model):
                 loss += e.norm(1)*l
             loss += MSE(x_hat, x_batch)/len(x)
 
-    return loss
+    return loss.item()
 
 def ClassifierLoss(x,y,ae,model):
     with torch.no_grad():
@@ -106,7 +106,7 @@ def ClassifierLoss(x,y,ae,model):
             logits = model(x_batch)
             CrossEntropy = nn.CrossEntropyLoss()
             loss += CrossEntropy(logits,y_batch)/len(x)
-    return loss
+    return loss.item()
 
 def ClassifierAccuracy(x,y,ae,model):
     with torch.no_grad():
@@ -115,7 +115,7 @@ def ClassifierAccuracy(x,y,ae,model):
             x_batch, _ = ae(x_batch)
             logits = model(x_batch)
             acc += (torch.argmax(F.log_softmax(logits,dim=1),dim=1) == y_batch).float().mean()/len(x)
-    return acc
+    return acc.item()
 
 def ClassifierEvaluate(x,y,ae,model):
     with torch.no_grad():
@@ -127,7 +127,7 @@ def ClassifierEvaluate(x,y,ae,model):
             logits = model(x_batch)
             loss += CrossEntropy(logits,y_batch)/len(x)
             acc += (torch.argmax(F.log_softmax(logits,dim=1),dim=1) == y_batch).float().mean()/len(x)
-    return loss, acc
+    return loss.item(), acc.item()
 
 def ConfusionMat(x,y,ae,model,plot=True):
     with torch.no_grad():

@@ -60,9 +60,9 @@ def AutoencoderLoss(x, model):
             for e in encoded:
                 loss += e.norm(1)*l
             loss += MSE(x_hat, x_batch)/len(x)
-        return loss.item()
+    return loss.item()
 
-def ClassifierLossAcc(x,y,model):
+def ClassifierEvaluate(x,y,model):
     with torch.no_grad():
         CrossEntropy = nn.CrossEntropyLoss()
         loss = 0
@@ -72,7 +72,7 @@ def ClassifierLossAcc(x,y,model):
             loss += CrossEntropy(logits,y_batch)/len(x)
             acc += (torch.argmax(F.log_softmax(logits,dim=1),dim=1) == y_batch).float().mean()/len(x)
 
-        return loss.item(), acc.item()
+    return loss.item(), acc.item()
 
 def ClassifierAccuracy(x,y,model):
     with torch.no_grad():
@@ -140,7 +140,7 @@ train_acc_all = []
 test_loss_all = []
 test_acc_all = []
 
-for k in range(1):
+for k in range(len(splits)):
     x_mixed_train = []
     x_mixed_test = []
     y_mixed_train = []
@@ -240,8 +240,8 @@ for k in range(1):
             cl_opt.step()
         
         classifier.eval()
-        val_loss, val_acc = ClassifierLossAcc(x_mixed_test,y_mixed_test,classifier)
-        train_loss, train_acc = ClassifierLossAcc(x_mixed_train,y_mixed_train,classifier)
+        val_loss, val_acc = ClassifierEvaluate(x_mixed_test,y_mixed_test,classifier)
+        train_loss, train_acc = ClassifierEvaluate(x_mixed_train,y_mixed_train,classifier)
         classifier.train()
         
         cl_train_loss.append(train_loss)
@@ -259,15 +259,18 @@ for k in range(1):
     test_loss_all.append(cl_test_loss)
     test_acc_all.append(cl_test_accuracy)
 
-    plt.figure(figsize=(15,9))
-    plt.plot(range(1,cl_epochs+1),cl_train_accuracy,label='Train Accuracy')
-    plt.plot(range(1,cl_epochs+1),cl_test_accuracy,label='Test Accuracy')
-    plt.xlim(1,cl_epochs)
-    plt.title(f'Accuracy vs Epochs, K = {k}')
-    plt.xlabel('Epoch')
-    plt.ylabel('Accuracy')
-    plt.legend()
-    plt.savefig(f'Accuracy{k}.png', bbox_inches='tight')
+    try:
+        plt.figure(figsize=(15,9))
+        plt.plot(range(1,cl_epochs+1),cl_train_accuracy,label='Train Accuracy')
+        plt.plot(range(1,cl_epochs+1),cl_test_accuracy,label='Test Accuracy')
+        plt.xlim(1,cl_epochs)
+        plt.title(f'Accuracy vs Epochs, K = {k}')
+        plt.xlabel('Epoch')
+        plt.ylabel('Accuracy')
+        plt.legend()
+        plt.savefig(f'Accuracy{k}.png', bbox_inches='tight')
+    except:
+        print('Figure Failed')
 
     # del x_mixed_train, x_mixed_test, y_mixed_train, y_mixed_test, autoencoder, classifier
     # torch.cuda.empty_cache()
