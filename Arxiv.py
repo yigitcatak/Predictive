@@ -15,10 +15,10 @@ import seaborn as sns
 
 Class_Count = 10
 Subband_Count = 1
-Channel_Count = 1
+Channel_Count = 2
 Sample_Length = 1200
 N = 30
-K = 400
+K = 40
 J = int(Sample_Length/N)
 
 class Arxiv(nn.Module):
@@ -69,8 +69,8 @@ class Classifier(nn.Module):
     def forward(self,x):
         # get the mean segment of each J segment
         features = torch.stack([torch.mean(x[range(i,i+J)], dim=0) for i in range(0,len(x),J)]) 
-        logits = self.lin2(features)
-        # logits = self.lin2(self.relu(self.lin1(features)))
+        # logits = self.lin2(features)
+        logits = self.lin2(self.relu(self.lin1(features)))
         return logits
 
 def AutoencoderLoss(x, model):
@@ -80,7 +80,7 @@ def AutoencoderLoss(x, model):
         encoded, x_hat = model(x)
         for e in encoded:
             loss += e.norm(1)
-        loss = loss*0.25/(len(x)*K)
+        loss = loss*0.25/(len(x))
         loss += MSE(x_hat, x)
 
     return loss.item()
@@ -189,8 +189,8 @@ y_test = y_test.to(device)
 weights = weights.to(device)
 
 # Autoencoder
-x_test = Batch(x_test,J*100)
-y_test = Batch(y_test,100)
+x_test = Batch(x_test,J*128)
+y_test = Batch(y_test,128)
 ae = Arxiv().cuda()
 
 MSE = nn.MSELoss()
@@ -206,7 +206,7 @@ for epoch in range(ae_epochs):
     loss = 0
     for x in encoded_features:
         loss += x.norm(1)
-    loss = loss*0.25/len(x_train)
+    loss = loss*0.25/(len(x_train)*K)
     loss += MSE(reconstructed, x_train)
     loss.backward()
     ae_opt.step()
@@ -230,11 +230,11 @@ plt.ylabel('MSE + L1 Norm')
 plt.legend()
 plt.show()
 
-torch.save(ae.state_dict(),'saves/Arxiv_20.pt')
+# torch.save(ae.state_dict(),'saves/Arxiv_20.pt')
 
 # Classifier
-x_train = Batch(x_train,J*100)
-y_train = Batch(y_train,100)
+x_train = Batch(x_train,J*128)
+y_train = Batch(y_train,128)
 
 # ae = Arxiv().cuda()
 # ae.load_state_dict(torch.load('saves/Arxiv_40.pt'))
@@ -263,8 +263,8 @@ for epoch in range(cl_epochs):
         cl_opt.step()
     
     cl.eval()
-    train_loss,train_accuracy = ClassifierEvaluate(x_train,y_train,cl)
-    test_loss,test_accuracy = ClassifierEvaluate(x_test,y_test,cl)
+    train_loss,train_accuracy = ClassifierEvaluate(x_train,y_train,ae,cl)
+    test_loss,test_accuracy = ClassifierEvaluate(x_test,y_test,ae,cl)
     cl.train()
 
     cl_train_loss.append(train_loss)
@@ -297,4 +297,4 @@ plt.ylabel('Accuracy')
 plt.legend()
 plt.show()
 
-torch.save(cl.state_dict(),'saves/Arxiv_20_Classifier.pt')
+# torch.save(cl.state_dict(),'saves/Arxiv_20_Classifier.pt')
