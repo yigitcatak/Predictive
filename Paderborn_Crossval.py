@@ -136,7 +136,7 @@ for k in range(len(splits)):
     y_mixed_test = []
 
     for name in AllFiles:
-        df = pd.read_csv(f'datasets/Paderborn/segmented/{name}')
+        df = pd.read_csv(f'dataset_paderborn/segmented/{name}')
         data = df.drop(['label'], axis=1).values.tolist()[:len(df)-len(df)%J]
         label = df['label'].values.tolist()[:len(df)-len(df)%J:J]
 
