@@ -1,6 +1,5 @@
 #%%
 import torch
-from torch import random
 import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
@@ -10,15 +9,13 @@ from scipy import linalg
 from os import listdir
 from os.path import isfile, join
 from random import shuffle
-from sklearn.metrics import confusion_matrix
-import seaborn as sns
 
 SampleLength = 64000
 N = 50 # input dim
 K = 400 # encoding dim
 J = int(SampleLength/N) # number of segments in a sample
 AllFiles = [f for f in listdir('datasets/Paderborn/segmented')]
-ClassCount = 4
+ClassCount = 3
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -73,14 +70,6 @@ def ClassifierEvaluate(x,y,model):
             acc += (torch.argmax(F.log_softmax(logits,dim=1),dim=1) == y_batch).float().mean()/len(x)
 
     return loss.item(), acc.item()
-
-def ClassifierAccuracy(x,y,model):
-    with torch.no_grad():
-        acc = 0
-        for x_batch,y_batch in zip(x,y):
-            logits = model(x_batch)
-            acc += (torch.argmax(F.log_softmax(logits,dim=1),dim=1) == y_batch).float().mean()/len(x)
-    return acc.item()
 
 def Whiten(x, mean=None, eigenVecs=None, diagonal_mat=None ):
     #need to type-check because comparing numpy array with None directly 
@@ -192,7 +181,7 @@ for k in range(len(splits)):
     autoencoder = TiedAutoencoder().to(device)
     ae_opt = torch.optim.LBFGS(autoencoder.parameters(), lr=1e-2)
     MSE = nn.MSELoss()
-    ae_epochs = 1
+    ae_epochs = 10
 
     ae_validation_history = []
     for epoch in range(ae_epochs):
@@ -223,7 +212,7 @@ for k in range(len(splits)):
     classifier = Classifier(Wloc).to(device)
     cl_opt = torch.optim.Adam(classifier.parameters(), lr=3e-2)
     CrossEntropy = nn.CrossEntropyLoss()
-    cl_epochs = 1
+    cl_epochs = 1000
 
     cl_train_loss = []
     cl_test_loss = []
