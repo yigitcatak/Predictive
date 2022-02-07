@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 Class_Count = 3
 Subband_Count = 1
-Channel_Count = 2
+Channel_Count = 1
 Sample_Length = 6400
 J = 40
 N = int(Sample_Length/J)
@@ -48,7 +48,6 @@ class Arxiv(nn.Module):
         bottleneck = self.lin2(encoder_out)
         decoder_out = torch.reshape(self.lin4(self.lin3(bottleneck)),(-1,40,1,int(N/2)))
         decoder_out = self.tconv1(self.drp1(self.relu(self.tconv2(self.drp1(self.relu(self.tconv3(decoder_out)))))))
-
         return bottleneck, decoder_out
 
 class Classifier(nn.Module):
@@ -158,8 +157,10 @@ y_test = y_test.cuda()
 weights = weights.cuda()
 
 # Autoencoder
-x_test = Batch(x_test,J*128)
-y_test = Batch(y_test,128)
+x_train = Batch(x_train,J*256)
+y_train = Batch(y_train,256)
+x_test = Batch(x_test,J*4096)
+y_test = Batch(y_test,4096)
 ae = Arxiv().cuda()
 
 MSE = nn.MSELoss()
@@ -203,8 +204,6 @@ for epoch in range(ae_epochs):
 # torch.save(ae.state_dict(),'saves/Arxiv_20.pt')
 
 # Classifier
-x_train = Batch(x_train,J*128)
-y_train = Batch(y_train,128)
 
 # ae = Arxiv().cuda()
 # ae.load_state_dict(torch.load('saves/Arxiv_40.pt'))
