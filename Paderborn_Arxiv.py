@@ -7,13 +7,13 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-Class_Count = 10
+Class_Count = 3
 Subband_Count = 1
 Channel_Count = 2
-Sample_Length = 1200
+Sample_Length = 6400
 J = 40
 N = int(Sample_Length/J)
-K = 40
+K = 200
 class Arxiv(nn.Module):
     def __init__(self):
         super(Arxiv,self).__init__()
@@ -32,10 +32,10 @@ class Arxiv(nn.Module):
         self.conv3 = nn.Conv2d(40,40, (1,11),padding=(0,5))
 
         # LINEAR
-        self.lin1 = nn.Linear(int(N/2)*40,800)
-        self.lin2 = nn.Linear(800,K)
-        self.lin3 = nn.Linear(K,800)
-        self.lin4 = nn.Linear(800,int(N/2)*40)
+        self.lin1 = nn.Linear(int(N/2)*40,int(N/2)*40)
+        self.lin2 = nn.Linear(int(N/2)*40,K)
+        self.lin3 = nn.Linear(K,int(N/2)*40)
+        self.lin4 = nn.Linear(int(N/2)*40,int(N/2)*40)
 
         # DECODER
         self.tconv1 = nn.ConvTranspose2d(40, 1, (Channel_Count,1))
@@ -58,7 +58,6 @@ class Classifier(nn.Module):
         self.lin2 = nn.Linear(K, Class_Count, bias=False)
         self.relu = nn.ReLU()
 
-
     def forward(self,x):
         # get the mean segment of each J segment
         features = torch.stack([torch.mean(x[range(i,i+J)], dim=0) for i in range(0,len(x),J)]) 
@@ -75,7 +74,6 @@ def AutoencoderLoss(x, model):
             loss += e.norm(1)
         loss = loss*0.25/(len(x))
         loss += MSE(x_hat, x)
-
     return loss.item()
 
 def AutoencoderBatchedLoss(x, model):
@@ -88,7 +86,6 @@ def AutoencoderBatchedLoss(x, model):
             for e in encoded:
                 loss += e.norm(1)*l
             loss += MSE(x_hat, x_batch)/len(x)
-
     return loss.item()
 
 def ClassifierLoss(x,y,ae,model):
@@ -126,32 +123,31 @@ def Batch(l, J):
     def inner():
         for i in range(0, len(l)-(len(l)%J), J):
             yield l[i:i + J]
-
     return list(inner())
 
 # Read Data
 if Channel_Count == 1:
-    x_train = torch.load('datasets/CWRU/presplit/x_train_fan_end.pt')
-    x_test = torch.load('datasets/CWRU/presplit/x_test_fan_end.pt')
-    y_train = torch.load('datasets/CWRU/presplit/y_train.pt')
-    y_test = torch.load('datasets/CWRU/presplit/y_test.pt')
+    x_train = torch.load('datasets/Paderborn/presplit/x_train_vibration.pt')
+    x_test = torch.load('datasets/Paderborn/presplit/x_test_vibration.pt')
+    y_train = torch.load('datasets/Paderborn/presplit/y_train.pt')
+    y_test = torch.load('datasets/Paderborn/presplit/y_test.pt')
 
     x_train = torch.unsqueeze(torch.unsqueeze(x_train,dim=1),dim=1)
     x_test = torch.unsqueeze(torch.unsqueeze(x_test,dim=1),dim=1)
 
 if Channel_Count == 2:
-    x_train = torch.load('datasets/CWRU/presplit/x_train_fan_end.pt')
-    x_test = torch.load('datasets/CWRU/presplit/x_test_fan_end.pt')
-    x_train2 = torch.load('datasets/CWRU/presplit/x_train_drive_end.pt')
-    x_test2 = torch.load('datasets/CWRU/presplit/x_test_drive_end.pt')
-    y_train = torch.load('datasets/CWRU/presplit/y_train.pt')
-    y_test = torch.load('datasets/CWRU/presplit/y_test.pt')
+    x_train = torch.load('datasets/Paderborn/presplit/x_train_vibration.pt')
+    x_test = torch.load('datasets/Paderborn/presplit/x_test_vibration.pt')
+    x_train2 = torch.load('datasets/Paderborn/presplit/x_train_current1.pt')
+    x_test2 = torch.load('datasets/Paderborn/presplit/x_test_current1.pt')
+    y_train = torch.load('datasets/Paderborn/presplit/y_train.pt')
+    y_test = torch.load('datasets/Paderborn/presplit/y_test.pt')
 
     x_train = torch.unsqueeze(torch.cat([torch.unsqueeze(x_train,dim=1),torch.unsqueeze(x_train2,dim=1)],dim=1),dim=1)
     x_test = torch.unsqueeze(torch.cat([torch.unsqueeze(x_test,dim=1),torch.unsqueeze(x_test2,dim=1)],dim=1),dim=1)
     del x_train2, x_test2
 
-weights = torch.load('datasets/CWRU/presplit/class_weights.pt')
+weights = torch.load('datasets/Paderborn/presplit/class_weights.pt')
 
 #%%
 # Cuda
@@ -174,6 +170,7 @@ ae_train_history = []
 ae_test_history = []
 
 for epoch in range(ae_epochs):
+    print(f'epoch: {epoch+1}/{ae_epochs}')
     ae_opt.zero_grad()
     encoded_features, reconstructed = ae(x_train)
     loss = 0
@@ -181,27 +178,27 @@ for epoch in range(ae_epochs):
         loss += x.norm(1)
     loss = loss*0.25/(len(x_train)*K)
     loss += MSE(reconstructed, x_train)
+    print(f'deneme loss: {loss.item()}')
     loss.backward()
     ae_opt.step()
     
     ae.eval()
     ae_train_history.append(AutoencoderLoss(x_train,ae))
-    ae_test_history.append(AutoencoderBatchedLoss(x_test,ae))
+    # ae_test_history.append(AutoencoderBatchedLoss(x_test,ae))
     ae.train()
-    print(f'epoch: {epoch+1}/{ae_epochs}')
     print(f'train loss: {ae_train_history[-1]}')
-    print(f'test loss: {ae_test_history[-1]}')
+    # print(f'test loss: {ae_test_history[-1]}')
 
 
-plt.figure(figsize=(15,9))
-plt.plot(range(1,ae_epochs+1),ae_train_history,label='train loss')
-plt.plot(range(1,ae_epochs+1),ae_test_history,label='test loss')
-plt.xlim(1,ae_epochs)
-plt.title('Train Loss vs Epochs Passed')
-plt.xlabel('Epoch')
-plt.ylabel('MSE + L1 Norm')
-plt.legend()
-plt.show()
+# plt.figure(figsize=(15,9))
+# plt.plot(range(1,ae_epochs+1),ae_train_history,label='train loss')
+# plt.plot(range(1,ae_epochs+1),ae_test_history,label='test loss')
+# plt.xlim(1,ae_epochs)
+# plt.title('Train Loss vs Epochs Passed')
+# plt.xlabel('Epoch')
+# plt.ylabel('MSE + L1 Norm')
+# plt.legend()
+# plt.show()
 
 # torch.save(ae.state_dict(),'saves/Arxiv_20.pt')
 
@@ -258,7 +255,7 @@ plt.title('Loss vs Epochs')
 plt.xlabel('Epoch')
 plt.ylabel('Cross Entropy Loss')
 plt.legend()
-plt.show()
+plt.savefig('Paderborn_Arxiv_Loss.png', bbox_inches='tight')
 
 plt.figure(figsize=(15,9))
 plt.plot(range(1,cl_epochs+1),cl_train_accuracy,label='Train Accuracy')
@@ -268,6 +265,6 @@ plt.title('Accuracy vs Epochs')
 plt.xlabel('Epoch')
 plt.ylabel('Accuracy')
 plt.legend()
-plt.show()
+plt.savefig('Paderborn_Arxiv_Accuracy.png', bbox_inches='tight')
 
 # torch.save(cl.state_dict(),'saves/Arxiv_20_Classifier.pt')

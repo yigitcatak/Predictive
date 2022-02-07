@@ -8,8 +8,8 @@ from random import shuffle
 Sample_Length = 1200
 N = 30
 J = int(Sample_Length/N)
-FanEnd = [f for f in listdir('datasets/CWRU/segmented/fanend')]
-DriveEnd = [f for f in listdir('datasets/CWRU/segmented/driveend')]
+FanEnd = [f for f in listdir('datasets/CWRU/segmented/fan_end')]
+DriveEnd = [f for f in listdir('datasets/CWRU/segmented/drive_end')]
 
 Class_Weights = dict(zip(list(range(10)),list(0 for i in range(10))))
 
@@ -54,14 +54,13 @@ y_train = []
 y_test = []
 
 for name in FanEnd:
-    df = pd.read_csv(f'datasets/CWRU/segmented/fanend/{name}')
+    df = pd.read_csv(f'datasets/CWRU/segmented/fan_end/{name}')
     data = df.drop(['label'], axis=1).values.tolist()[:len(df)-len(df)%J]
 
     # We keep 1 label for each J segment, for memory efficicency
     label = df['label'].values.tolist()[:len(data):J]
-    
 
-    idx = int(len(label)*0.1)
+    idx = int(len(label)*0.1) # 10% train data
     train = data[0:idx*J]
     test = data[idx*J:]
     train_label = label[0:idx]
