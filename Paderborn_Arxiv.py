@@ -172,19 +172,22 @@ ae_test_history = []
 
 for epoch in range(ae_epochs):
     print(f'epoch: {epoch+1}/{ae_epochs}')
-    ae_opt.zero_grad()
-    encoded_features, reconstructed = ae(x_train)
-    loss = 0
-    for x in encoded_features:
-        loss += x.norm(1)
-    loss = loss*0.25/(len(x_train)*K)
-    loss += MSE(reconstructed, x_train)
-    print(f'deneme loss: {loss.item()}')
-    loss.backward()
-    ae_opt.step()
+    deneme_loss = 0
+    for x_batch in x_train:
+        ae_opt.zero_grad()
+        encoded_features, reconstructed = ae(x_train)
+        loss = 0
+        for x in encoded_features:
+            loss += x.norm(1)
+        loss = loss*0.25/len(x_train)
+        loss += MSE(reconstructed, x_train)
+        deneme_loss += loss.item()
+        loss.backward()
+        ae_opt.step()
+    print(f'deneme loss: {deneme_loss}')
     
     ae.eval()
-    ae_train_history.append(AutoencoderLoss(x_train,ae))
+    ae_train_history.append(AutoencoderBatchedLoss(x_train,ae))
     # ae_test_history.append(AutoencoderBatchedLoss(x_test,ae))
     ae.train()
     print(f'train loss: {ae_train_history[-1]}')
