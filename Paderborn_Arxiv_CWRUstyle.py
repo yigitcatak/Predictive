@@ -3,8 +3,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 
 Class_Count = 3
@@ -18,6 +16,11 @@ K = 7*N
 class Arxiv(nn.Module):
     def __init__(self):
         super(Arxiv,self).__init__()
+
+        # self.ChannelNumber = Subband_Count*Class_Count #10
+        # self.LinSize = int(N*self.ChannelNumber/2) #20
+        # self.LinSize2 = int(self.LinSize/3)+(10-int(self.LinSize/3)%10) #70
+
         self.drp1 = nn.Dropout(p = 0.1)
         self.drp2 = nn.Dropout(p = 0.9)
         self.flat = nn.Flatten()
@@ -40,8 +43,7 @@ class Arxiv(nn.Module):
         self.tconv3 = nn.ConvTranspose2d(PARAM,PARAM,(1,11),padding=(0,5))
 
     def forward(self,x):
-        # encoder_out = self.drp2(self.conv3(self.relu(self.drp1(self.relu(self.conv2(self.drp1(self.conv1(x))))))))
-        encoder_out = self.conv3(self.relu(self.drp1(self.relu(self.conv2(self.drp1(self.conv1(x)))))))
+        encoder_out = self.drp2(self.conv3(self.relu(self.drp1(self.relu(self.conv2(self.drp1(self.conv1(x))))))))
         encoder_out = self.lin1(self.flat(encoder_out))
         bottleneck = self.lin2(encoder_out)
         decoder_out = torch.reshape(self.lin4(self.lin3(bottleneck)),(-1,PARAM,1,int(N/2)))
@@ -60,8 +62,7 @@ class Classifier(nn.Module):
         # get the mean segment of each J segment
         features = torch.stack([torch.mean(x[range(i,i+J)], dim=0) for i in range(0,len(x),J)]) 
         # logits = self.lin2(features)
-        # logits = self.lin2(self.drp(self.relu(self.lin1(features))))
-        logits = self.lin2(self.relu(self.lin1(features)))
+        logits = self.lin2(self.drp(self.relu(self.lin1(features))))
         return logits
 
 def AutoencoderLoss(x, model):
@@ -126,11 +127,10 @@ def Batch(l, J):
 
 # Read Data
 if Channel_Count == 1:
-    x_train = torch.load('datasets/Paderborn/presplit/x_train_vibration.pt')
-    x_test = torch.load('datasets/Paderborn/presplit/x_test_vibration.pt')
-    y_train = torch.load('datasets/Paderborn/presplit/y_train.pt')
-    y_test = torch.load('datasets/Paderborn/presplit/y_test.pt')
-
+    x_train = torch.load('datasets/Paderborn/presplit/x_train_CWRUstyle.pt')
+    x_test = torch.load('datasets/Paderborn/presplit/x_test_CWRUstyle.pt')
+    y_train = torch.load('datasets/Paderborn/presplit/y_train_CWRUstyle.pt')
+    y_test = torch.load('datasets/Paderborn/presplit/y_test_CWRUstyle.pt')
     x_train = torch.unsqueeze(torch.unsqueeze(x_train,dim=1),dim=1)
     x_test = torch.unsqueeze(torch.unsqueeze(x_test,dim=1),dim=1)
 
@@ -201,7 +201,7 @@ for epoch in range(ae_epochs):
 # plt.legend()
 # plt.show()
 
-torch.save(ae.state_dict(),'saves/Paderborn_Arxiv_AE.pt')
+torch.save(ae.state_dict(),'saves/Paderborn_Arxiv_AE_CWRUstyle.pt')
 
 # Classifier
 
@@ -266,4 +266,4 @@ plt.ylabel('Accuracy')
 plt.legend()
 plt.savefig('Paderborn_Arxiv_Accuracy.png', bbox_inches='tight')
 
-torch.save(cl.state_dict(),'saves/Paderborn_Arxiv_Classifier.pt')
+torch.save(cl.state_dict(),'saves/Paderborn_Arxiv_Classifier_CWRUstyle.pt')
