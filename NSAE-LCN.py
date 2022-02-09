@@ -18,7 +18,7 @@ N = 30 # input dim
 Sample_Length = 1200
 K = 40 # encoding dim
 J = int(Sample_Length/N) # number of segments in a sample
-ClassCount = 10
+Class_Count = 10
 
 class TiedAutoencoder(nn.Module):
     def __init__(self):
@@ -35,7 +35,7 @@ class Classifier(nn.Module):
         super(Classifier,self).__init__()
         self.Wloc = nn.Linear(N,K)
         self.relu = nn.ReLU()
-        self.lin2 = nn.Linear(K, ClassCount, bias=False)
+        self.lin2 = nn.Linear(K, Class_Count, bias=False)
         self.lin1 = nn.Linear(K, K, bias=False)
 
         if Wloc is not None:

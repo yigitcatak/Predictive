@@ -3,62 +3,44 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
 Class_Count = 3
-Subband_Count = 1
-Channel_Count = 1
 Sample_Length = 6400
 J = 40
 N = int(Sample_Length/J)
-PARAM = 40
 K = 7*N
-class Arxiv(nn.Module):
+class TiedAutoencoder(nn.Module):
     def __init__(self):
-        super(Arxiv,self).__init__()
-        self.drp1 = nn.Dropout(p = 0.1)
-        self.drp2 = nn.Dropout(p = 0.9)
-        self.flat = nn.Flatten()
-        self.relu = nn.ReLU()
-        self.bnorm = nn.BatchNorm2d(PARAM)
-
-        # ENCODER
-        self.conv1 = nn.Conv2d(1, PARAM, (Channel_Count,1))
-        self.conv2 = nn.Conv2d(PARAM,PARAM,(1,Channel_Count),2)
-        self.conv3 = nn.Conv2d(PARAM,PARAM, (1,11),padding=(0,5))
-
-        # LINEAR
-        self.lin1 = nn.Linear(int(N/2)*PARAM,int(N/2)*PARAM)
-        self.lin2 = nn.Linear(int(N/2)*PARAM,K)
-        self.lin3 = nn.Linear(K,int(N/2)*PARAM)
-        self.lin4 = nn.Linear(int(N/2)*PARAM,int(N/2)*PARAM)
-
-        # DECODER
-        self.tconv1 = nn.ConvTranspose2d(PARAM, 1, (Channel_Count,1))
-        self.tconv2 = nn.ConvTranspose2d(PARAM,PARAM,(1,Channel_Count),2) if Channel_Count == 2 else nn.ConvTranspose2d(PARAM,PARAM,(1,Channel_Count),2,output_padding=(0,1)) 
-        self.tconv3 = nn.ConvTranspose2d(PARAM,PARAM,(1,11),padding=(0,5))
-
+        super(TiedAutoencoder,self).__init__()
+        self.Encoder = nn.Linear(N, K, bias=False)
+    
     def forward(self,x):
-        encoder_out = self.drp2(self.bnorm(self.conv3(self.drp1(self.relu(self.bnorm(self.conv2((self.drp1(self.bnorm(self.conv1(x)))))))))))
-        encoder_out = self.lin1(self.flat(encoder_out))
-        bottleneck = self.lin2(encoder_out)
-        decoder_out = torch.reshape(self.lin4(self.lin3(bottleneck)),(-1,PARAM,1,int(N/2)))
-        decoder_out = self.tconv1(self.drp1(self.relu(self.tconv2(self.drp1(self.relu(self.tconv3(decoder_out)))))))
-        return bottleneck, decoder_out
+        encoded_features = F.relu(self.Encoder(x))
+        reconstructed = F.linear(encoded_features, self.Encoder.weight.t())
+        return encoded_features, reconstructed
 
 class Classifier(nn.Module):
-    def __init__(self):
+    def __init__(self,Wloc=None):
         super(Classifier,self).__init__()
-        self.lin1 = nn.Linear(K, K, bias=False)
-        self.lin2 = nn.Linear(K, Class_Count, bias=False)
+        self.Wloc = nn.Linear(N,K)
         self.relu = nn.ReLU()
-        self.drp = nn.Dropout(p = 0.9)
+        self.lin2 = nn.Linear(K, Class_Count, bias=False)
+        self.lin1 = nn.Linear(K, K, bias=False)
 
+        if Wloc is not None:
+            self.Wloc.weight = nn.Parameter(Wloc, requires_grad=False)
+        
     def forward(self,x):
+        with torch.no_grad():
+            local_features = self.relu(self.Wloc(x))
+
         # get the mean segment of each J segment
-        features = torch.stack([torch.mean(x[range(i,i+J)], dim=0) for i in range(0,len(x),J)]) 
+        features = torch.stack([torch.mean(local_features[i:i+J], dim=0) for i in range(0,len(local_features),J)])
+        logits = self.lin2(self.relu(self.lin1(features)))
         # logits = self.lin2(features)
-        logits = self.lin2(self.drp(self.relu(self.lin1(features))))
         return logits
 
 def AutoencoderLoss(x, model):
@@ -122,26 +104,10 @@ def Batch(l, J):
     return list(inner())
 
 # Read Data
-if Channel_Count == 1:
-    x_train = torch.load('datasets/Paderborn/presplit/x_train_CWRUstyle.pt')
-    x_test = torch.load('datasets/Paderborn/presplit/x_test_CWRUstyle.pt')
-    y_train = torch.load('datasets/Paderborn/presplit/y_train_CWRUstyle.pt')
-    y_test = torch.load('datasets/Paderborn/presplit/y_test_CWRUstyle.pt')
-    x_train = torch.unsqueeze(torch.unsqueeze(x_train,dim=1),dim=1)
-    x_test = torch.unsqueeze(torch.unsqueeze(x_test,dim=1),dim=1)
-
-if Channel_Count == 2:
-    x_train = torch.load('datasets/Paderborn/presplit/x_train_vibration.pt')
-    x_test = torch.load('datasets/Paderborn/presplit/x_test_vibration.pt')
-    x_train2 = torch.load('datasets/Paderborn/presplit/x_train_current1.pt')
-    x_test2 = torch.load('datasets/Paderborn/presplit/x_test_current1.pt')
-    y_train = torch.load('datasets/Paderborn/presplit/y_train.pt')
-    y_test = torch.load('datasets/Paderborn/presplit/y_test.pt')
-
-    x_train = torch.unsqueeze(torch.cat([torch.unsqueeze(x_train,dim=1),torch.unsqueeze(x_train2,dim=1)],dim=1),dim=1)
-    x_test = torch.unsqueeze(torch.cat([torch.unsqueeze(x_test,dim=1),torch.unsqueeze(x_test2,dim=1)],dim=1),dim=1)
-    del x_train2, x_test2
-
+x_train = torch.load('datasets/Paderborn/presplit/x_train_vibration.pt')
+x_test = torch.load('datasets/Paderborn/presplit/x_test_vibration.pt')
+y_train = torch.load('datasets/Paderborn/presplit/y_train.pt')
+y_test = torch.load('datasets/Paderborn/presplit/y_test.pt')
 weights = torch.load('datasets/Paderborn/presplit/class_weights.pt')
 
 #%%
@@ -157,11 +123,11 @@ x_train = Batch(x_train,J*256)
 y_train = Batch(y_train,256)
 x_test = Batch(x_test,J*1024)
 y_test = Batch(y_test,1024)
-ae = Arxiv().cuda()
+ae = TiedAutoencoder().cuda()
 
 MSE = nn.MSELoss()
 ae_opt = torch.optim.Adam(ae.parameters(), lr=2e-4)
-ae_epochs = 4
+ae_epochs = 10
 
 ae_train_history = []
 ae_test_history = []
@@ -197,7 +163,9 @@ for epoch in range(ae_epochs):
 # plt.legend()
 # plt.show()
 
-torch.save(ae.state_dict(),'saves/Paderborn_Arxiv_AE_CWRUstyle.pt')
+torch.save(ae.state_dict(),'saves/Paderborn_NSAELCN_AE.pt')
+for w in ae.parameters():
+    Wloc = w.detach().clone()
 
 # Classifier
 
@@ -207,9 +175,9 @@ ae.eval()
 
 CrossEntropy = nn.CrossEntropyLoss(weight=weights)
 
-cl = Classifier().cuda()
-cl_opt = torch.optim.Adam(cl.parameters(), lr=3e-3)
-cl_epochs = 20
+cl = Classifier(Wloc).cuda()
+cl_opt = torch.optim.Adam(cl.parameters(), lr=1e-1)
+cl_epochs = 500
 
 cl_train_loss = []
 cl_test_loss = []
@@ -250,7 +218,7 @@ plt.title('Loss vs Epochs')
 plt.xlabel('Epoch')
 plt.ylabel('Cross Entropy Loss')
 plt.legend()
-plt.savefig('Paderborn_Arxiv_Loss.png', bbox_inches='tight')
+plt.savefig('Paderborn_NSAELCN_Loss.png', bbox_inches='tight')
 
 plt.figure(figsize=(15,9))
 plt.plot(range(1,cl_epochs+1),cl_train_accuracy,label='Train Accuracy')
@@ -260,6 +228,6 @@ plt.title('Accuracy vs Epochs')
 plt.xlabel('Epoch')
 plt.ylabel('Accuracy')
 plt.legend()
-plt.savefig('Paderborn_Arxiv_Accuracy.png', bbox_inches='tight')
+plt.savefig('Paderborn_NSAELCN_Accuracy.png', bbox_inches='tight')
 
-torch.save(cl.state_dict(),'saves/Paderborn_Arxiv_Classifier_CWRUstyle.pt')
+torch.save(cl.state_dict(),'saves/Paderborn_NSAELCN_Classifier.pt')

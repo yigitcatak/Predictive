@@ -18,6 +18,38 @@ class Arxiv(nn.Module):
         self.drp2 = nn.Dropout(p = 0.9)
         self.flat = nn.Flatten()
         self.relu = nn.ReLU()
+        self.bnorm = nn.BatchNorm2d(PARAM)
+
+        # ENCODER
+        self.conv1 = nn.Conv2d(1, PARAM, (Channel_Count,1))
+        self.conv2 = nn.Conv2d(PARAM,PARAM,(1,Channel_Count),2)
+        self.conv3 = nn.Conv2d(PARAM,PARAM, (1,11),padding=(0,5))
+
+        # LINEAR
+        self.lin1 = nn.Linear(int(N/2)*PARAM,int(N/2)*PARAM)
+        self.lin2 = nn.Linear(int(N/2)*PARAM,K)
+        self.lin3 = nn.Linear(K,int(N/2)*PARAM)
+        self.lin4 = nn.Linear(int(N/2)*PARAM,int(N/2)*PARAM)
+
+        # DECODER
+        self.tconv1 = nn.ConvTranspose2d(PARAM, 1, (Channel_Count,1))
+        self.tconv2 = nn.ConvTranspose2d(PARAM,PARAM,(1,Channel_Count),2) if Channel_Count == 2 else nn.ConvTranspose2d(PARAM,PARAM,(1,Channel_Count),2,output_padding=(0,1)) 
+        self.tconv3 = nn.ConvTranspose2d(PARAM,PARAM,(1,11),padding=(0,5))
+
+    def forward(self,x):
+        encoder_out = self.drp2(self.bnorm(self.conv3(self.drp1(self.relu(self.bnorm(self.conv2((self.drp1(self.bnorm(self.conv1(x)))))))))))
+        encoder_out = self.lin1(self.flat(encoder_out))
+        bottleneck = self.lin2(encoder_out)
+        decoder_out = torch.reshape(self.lin4(self.lin3(bottleneck)),(-1,PARAM,1,int(N/2)))
+        decoder_out = self.tconv1(self.drp1(self.relu(self.tconv2(self.drp1(self.relu(self.tconv3(decoder_out)))))))
+        return bottleneck, decoder_out
+class Arxiv2(nn.Module):
+    def __init__(self):
+        super(Arxiv2,self).__init__()
+        self.drp1 = nn.Dropout(p = 0.1)
+        self.drp2 = nn.Dropout(p = 0.9)
+        self.flat = nn.Flatten()
+        self.relu = nn.ReLU()
         # ENCODER
         self.conv1 = nn.Conv2d(1, PARAM, (Channel_Count,1))
         self.conv2 = nn.Conv2d(PARAM,PARAM,(1,Channel_Count),2)

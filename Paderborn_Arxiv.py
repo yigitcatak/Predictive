@@ -22,6 +22,7 @@ class Arxiv(nn.Module):
         self.drp2 = nn.Dropout(p = 0.9)
         self.flat = nn.Flatten()
         self.relu = nn.ReLU()
+        self.bnorm = nn.BatchNorm2d(PARAM)
 
         # ENCODER
         self.conv1 = nn.Conv2d(1, PARAM, (Channel_Count,1))
@@ -40,8 +41,7 @@ class Arxiv(nn.Module):
         self.tconv3 = nn.ConvTranspose2d(PARAM,PARAM,(1,11),padding=(0,5))
 
     def forward(self,x):
-        # encoder_out = self.drp2(self.conv3(self.relu(self.drp1(self.relu(self.conv2(self.drp1(self.conv1(x))))))))
-        encoder_out = self.conv3(self.relu(self.drp1(self.relu(self.conv2(self.drp1(self.conv1(x)))))))
+        encoder_out = self.drp2(self.bnorm(self.conv3(self.drp1(self.relu(self.bnorm(self.conv2((self.drp1(self.bnorm(self.conv1(x)))))))))))
         encoder_out = self.lin1(self.flat(encoder_out))
         bottleneck = self.lin2(encoder_out)
         decoder_out = torch.reshape(self.lin4(self.lin3(bottleneck)),(-1,PARAM,1,int(N/2)))
