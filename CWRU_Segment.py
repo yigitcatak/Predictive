@@ -4,7 +4,9 @@ from os import listdir
 from os.path import isfile, join
 
 all_files = [f for f in listdir("datasets/CWRU/original")]
-N = 30 #segments of size N
+Sample_Length = 1200
+J = 30
+N = int(Sample_Length/J)
 labels = {
             'B007': 0, 'B014': 1, 'B021': 2,
             'IR007': 3, 'IR014': 4, 'IR021': 5,

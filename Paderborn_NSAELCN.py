@@ -66,32 +66,12 @@ def AutoencoderBatchedLoss(x, model):
             loss += MSE(x_hat, x_batch)/len(x)
     return loss.item()
 
-def ClassifierLoss(x,y,ae,model):
-    with torch.no_grad():
-        loss = 0
-        CrossEntropy = nn.CrossEntropyLoss()
-        for x_batch,y_batch in zip(x,y):
-            x_batch, _ = ae(x_batch)
-            logits = model(x_batch)
-            loss += CrossEntropy(logits,y_batch)/len(x)
-    return loss.item()
-
-def ClassifierAccuracy(x,y,ae,model):
-    with torch.no_grad():
-        acc = 0
-        for x_batch,y_batch in zip(x,y):
-            x_batch, _ = ae(x_batch)
-            logits = model(x_batch)
-            acc += (torch.argmax(F.log_softmax(logits,dim=1),dim=1) == y_batch).float().mean()/len(x)
-    return acc.item()
-
-def ClassifierEvaluate(x,y,ae,model):
+def ClassifierEvaluate(x,y,model):
     with torch.no_grad():
         acc = 0
         loss = 0
         CrossEntropy = nn.CrossEntropyLoss()
         for x_batch,y_batch in zip(x,y):
-            x_batch, _ = ae(x_batch)
             logits = model(x_batch)
             loss += CrossEntropy(logits,y_batch)/len(x)
             acc += (torch.argmax(F.log_softmax(logits,dim=1),dim=1) == y_batch).float().mean()/len(x)
@@ -188,16 +168,14 @@ for epoch in range(cl_epochs):
     print(f"epoch: {epoch+1}/{cl_epochs}")
     for x, y in zip(x_train,y_train):
         cl_opt.zero_grad()
-        with torch.no_grad():
-            encoded, _  = ae(x)
-        logits = cl(encoded)
+        logits = cl(x)
         loss = CrossEntropy(logits, y)
         loss.backward()
         cl_opt.step()
     
     cl.eval()
-    train_loss,train_accuracy = ClassifierEvaluate(x_train,y_train,ae,cl)
-    test_loss,test_accuracy = ClassifierEvaluate(x_test,y_test,ae,cl)
+    train_loss,train_accuracy = ClassifierEvaluate(x_train,y_train,cl)
+    test_loss,test_accuracy = ClassifierEvaluate(x_test,y_test,cl)
     cl.train()
 
     cl_train_loss.append(train_loss)
