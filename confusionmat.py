@@ -1,5 +1,10 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from sklearn.metrics import confusion_matrix
+import matplotlib.pyplot as plt
 import seaborn as sns
+
 
 def ConfusionMat(x,y,ae,model,plot=True):
     with torch.no_grad():
@@ -18,6 +23,6 @@ def ConfusionMat(x,y,ae,model,plot=True):
 
 ae = Arxiv()
 cl = Classifier()
-ae.load_state_dict(torch.load('saves/Arxiv.pt'))
-cl.load_state_dict(torch.load('saves/Arxiv_Classifier.pt'))
+ae.load_state_dict(torch.load('saves/ae.pt'))
+cl.load_state_dict(torch.load('saves/cl.pt'))
 cm = ConfusionMat(x_test, y_test, ae, cl)
