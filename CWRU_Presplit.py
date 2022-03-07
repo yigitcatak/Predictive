@@ -1,53 +1,13 @@
-# READ FAN END
-import torch
-import pandas as pd
-import numpy as np
-from scipy import linalg
-from os import listdir
-from random import shuffle, randint, Random
+from PREDICTIVE_DEFINITIONS import *
 
 Sample_Length = 1200 #0.1 sec
-J = 40
-N = int(Sample_Length/J)
+J = 30
+N = Sample_Length//J
 
 FanEnd = [f for f in listdir('datasets/CWRU/segmented/fan_end')]
 DriveEnd = [f for f in listdir('datasets/CWRU/segmented/drive_end')]
 Class_Weights = dict(zip(list(range(10)),list(0 for i in range(10))))
 Seed = randint(0,1e6)
-
-def GroupSamples(l, J): #Group J segments together
-    def inner():
-        for i in range(0, len(l)-(len(l)%J), J):
-            yield l[i:i + J]
-    return list(inner())
-
-def Flatten(l): #Unpack Grouped segments
-    def inner():
-        for i in l:
-            for j in i:
-                yield(j)
-    return list(inner())
-
-def Whiten(x, mean=None, eigen_vecs=None, diagonal_mat=None ):
-    #need to type-check because comparing numpy array with None directly 
-    #(array == None) raises an error
-    t = type(None)
-    if (type(mean) == t) or (type(eigen_vecs) == t) or (type(diagonal_mat) == t):
-        x = np.array(x)
-        mean = x.mean(axis=0)
-        x -= mean
-        cov = np.cov(x, rowvar=False) #unbiased / divided by N-1
-        eigenVals, eigen_vecs = np.linalg.eig(cov)
-        diagonal_mat = np.diag(1/((eigenVals)**0.5))
-        uncorrelated = np.dot(x,eigen_vecs)
-        whitened = np.dot(uncorrelated, diagonal_mat)
-        return whitened, mean, eigen_vecs, diagonal_mat
-    else:
-        x = np.array(x)
-        x -= mean
-        uncorrelated = np.dot(x,eigen_vecs)
-        whitened = np.dot(uncorrelated, diagonal_mat)
-        return whitened
 
 x_mixed_train = []
 x_mixed_val = []
@@ -59,6 +19,7 @@ x_mixed_train2 = []
 x_mixed_val2 = []
 x_mixed_test2 = []
 
+# READ FAN END
 for name in FanEnd:
     df = pd.read_csv(f'datasets/CWRU/segmented/fan_end/{name}')
 
@@ -66,7 +27,7 @@ for name in FanEnd:
     data = df.drop(['label'], axis=1).values.tolist()[:len(df)-len(df)%J]
     # get every Jth label as the labels are given with the average of J segments to classifier
     label = df['label'].values.tolist()[:len(data):J]
-    # spare first 5% for training
+    # spare first x% for training
     idx = int(len(label)*0.05)
     idx2 = int(len(label)*0.1)
     train = data[0:idx*J]
@@ -77,7 +38,7 @@ for name in FanEnd:
     y_test = label[idx2:]
     Class_Weights[y_train[0]] += len(y_train)
     # group segments so that sample integrity is kept during the shuffling
-    train = GroupSamples(train,J)
+    train = Batch(train,J)
     train = list(zip(train,y_train))
     x_mixed_train += train
     x_mixed_val += val
@@ -86,7 +47,6 @@ for name in FanEnd:
     y_mixed_test += y_test
 
 # READ DRIVE END
-
 for name in DriveEnd:
     df = pd.read_csv(f'datasets/CWRU/segmented/drive_end/{name}')
 
@@ -95,7 +55,7 @@ for name in DriveEnd:
     # get every Jth label as the labels are given with the average of J segments to classifier
     label = df['label'].values.tolist()[:len(data):J]
 
-    # spare first 25% for training
+    # spare first x% for training
     idx = int(len(label)*0.05)
     idx2 = int(len(label)*0.1)
     train = data[0:idx*J]
@@ -103,7 +63,7 @@ for name in DriveEnd:
     test = data[idx2*J:]
 
     # group segments so that sample integrity is kept during the shuffling
-    train = GroupSamples(train,J)
+    train = Batch(train,J)
 
     x_mixed_train2 += train
     x_mixed_val2 += val

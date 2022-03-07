@@ -4,3 +4,5 @@ other/
 saves/
 __pycache__/
 unzip.py
+*.png
+*.csv

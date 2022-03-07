@@ -1,12 +1,10 @@
-import scipy.io
-import pandas as pd
-from os import listdir
-from os.path import isfile, join
+from PREDICTIVE_DEFINITIONS import *
 
 all_files = [f for f in listdir("datasets/CWRU/original")]
 Sample_Length = 1200
 J = 30
-N = int(Sample_Length/J)
+N = Sample_Length//J
+
 labels = {
             'B007': 0, 'B014': 1, 'B021': 2,
             'IR007': 3, 'IR014': 4, 'IR021': 5,
@@ -14,12 +12,6 @@ labels = {
             'OR007@6': 7, 'OR014@6': 8, 'OR021@6': 9
          }
 d = {3:'drive_end', 4:'fan_end'}
-
-def segments(l, n):
-    def inner():
-        for i in range(0, len(l) - (len(l)%n), n):
-            yield l[i:i + n]
-    return list(inner())
 
 prev_name = all_files[0][:all_files[0].find('_')]
 temp_df = pd.DataFrame()
@@ -35,7 +27,7 @@ for channel in range(3,5):
         name = name[:name.find('_')]
         label = labels[name]
 
-        segmented = segments(df[0].tolist(), N)
+        segmented = Batch(df[0].tolist(), N)
         df = pd.DataFrame(segmented)
         df["label"] = label
 
