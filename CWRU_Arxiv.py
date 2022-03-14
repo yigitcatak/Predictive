@@ -52,15 +52,16 @@ ae_train_loss = []
 ae_test_loss = []
 for epoch in range(ae_epochs):
     print(f'epoch: {epoch+1}/{ae_epochs}')
-    ae_opt.zero_grad()
-    encoded_features, reconstructed = ae(x_train)
-    loss = 0
-    for x in encoded_features:
-        loss += x.norm(1)
-    loss = loss*0.25/len(x_train)
-    loss += MSE(reconstructed, x_train)
-    loss.backward()
-    ae_opt.step()
+    for x_batch in x_train:
+        ae_opt.zero_grad()
+        encoded_features, reconstructed = ae(x_batch)
+        loss = 0
+        for x in encoded_features:
+            loss += x.norm(1)
+        loss = loss*0.25/len(x_batch)
+        loss += MSE(reconstructed, x_batch)
+        loss.backward()
+        ae_opt.step()
     
     # ae.eval()
     # ae_train_loss.append(AutoencoderLoss(x_train,ae))
@@ -83,13 +84,14 @@ cl_train_accuracy = []
 cl_test_accuracy = []
 for epoch in range(cl_epochs):
     print(f"epoch: {epoch+1}/{cl_epochs}")
-    cl_opt.zero_grad()
-    with torch.no_grad():
-        encoded, _  = ae(x_train)
-    logits = cl(encoded)
-    loss = CrossEntropy(logits, y_train)
-    loss.backward()
-    cl_opt.step()
+    for x_batch,y_batch in zip(x_train,y_train):
+        cl_opt.zero_grad()
+        with torch.no_grad():
+            encoded, _  = ae(x_batch)
+        logits = cl(encoded)
+        loss = CrossEntropy(logits, y_train)
+        loss.backward()
+        cl_opt.step()
 
     cl.eval()
     train_loss,train_accuracy = ClassifierEvaluate(x_train,y_train,ae,cl)
@@ -109,5 +111,5 @@ end = time.time()
 
 print(f'time elapsed: {(end-start)//60:.0f} minutes {(end-start)%60:.0f} seconds')
 # PlotResults(ae_train_loss,ae_test_loss,'Loss','MSE + L1 Norm')
-PlotResults(cl_train_loss,cl_test_loss,'Loss','Cross Entropy Loss')
-PlotResults(cl_train_accuracy,cl_test_accuracy,'Accuracy','Accuracy')
+PlotResults(cl_train_loss,cl_test_loss,'Loss','Cross Entropy Loss',isSave=True,savename='CWRU_Arxiv_Loss')
+PlotResults(cl_train_accuracy,cl_test_accuracy,'Accuracy','Accuracy',isSave=True,savename='CWRU_Arxiv_Accuracy')

@@ -27,6 +27,11 @@ y_train = y_train.to(DEVICE)
 y_test = y_test.to(DEVICE)
 weights = weights.to(DEVICE)
 
+x_train = Batch(x_train,256*J)
+x_test = Batch(x_test,256*J)
+y_train = Batch(y_train,256)
+y_test = Batch(y_test,256)
+
 #%%
 start = time.time()
 
@@ -40,15 +45,16 @@ ae_train_loss = []
 ae_test_loss = []
 for epoch in range(ae_epochs):
     print(f'epoch: {epoch+1}/{ae_epochs}')
-    ae_opt.zero_grad()
-    encoded_features, reconstructed = ae(x_train)
-    loss = 0
-    for x in encoded_features:
-        loss += x.norm(1)
-    loss = loss*0.25/len(x_train)
-    loss += MSE(reconstructed, x_train)
-    loss.backward()
-    ae_opt.step()
+    for x_batch in x_train:
+        ae_opt.zero_grad()
+        encoded_features, reconstructed = ae(x_batch)
+        loss = 0
+        for x in encoded_features:
+            loss += x.norm(1)
+        loss = loss*0.25/len(x_batch)
+        loss += MSE(reconstructed, x_batch)
+        loss.backward()
+        ae_opt.step()
     
     # ae.eval()
     # ae_train_loss.append(AutoencoderLoss(x_train,ae))
@@ -71,17 +77,18 @@ cl_train_accuracy = []
 cl_test_accuracy = []
 for epoch in range(cl_epochs):
     print(f"epoch: {epoch+1}/{cl_epochs}")
-    cl_opt.zero_grad()
-    with torch.no_grad():
-        encoded, _  = ae(x_train)
-    logits = cl(encoded)
-    loss = CrossEntropy(logits, y_train)
-    loss.backward()
-    cl_opt.step()
+    for x_batch,y_batch in zip(x_train,y_train):
+        cl_opt.zero_grad()
+        with torch.no_grad():
+            encoded, _  = ae(x_batch)
+        logits = cl(encoded)
+        loss = CrossEntropy(logits, y_train)
+        loss.backward()
+        cl_opt.step()
 
     cl.eval()
-    train_loss,train_accuracy = ClassifierEvaluate(x_train,y_train,ae,cl)
-    test_loss,test_accuracy = ClassifierEvaluate(x_test,y_test,ae,cl)
+    train_loss,train_accuracy = ClassifierEvaluate(x_train,y_train,ae,cl,isBatched=True)
+    test_loss,test_accuracy = ClassifierEvaluate(x_test,y_test,ae,cl,isBatched=True)
     cl.train()
 
     cl_train_loss.append(train_loss)
