@@ -32,10 +32,10 @@ class Arxiv(nn.Module):
         self.conv2 = nn.Conv2d(40,40,(1,2),2)
         self.conv3 = nn.Conv2d(40,40, (1,11),padding=(0,5))
         # LINEAR
-        self.lin1 = nn.Linear((input_dim//2)*40,(input_dim//4)*40)
-        self.lin2 = nn.Linear((input_dim//4)*40,encoding_dim)
-        self.lin3 = nn.Linear(encoding_dim,(input_dim//4)*40)
-        self.lin4 = nn.Linear((input_dim//4)*40,(input_dim//2)*40)
+        self.lin1 = nn.Linear(input_dim*20,input_dim*10)
+        self.lin2 = nn.Linear(input_dim*10,encoding_dim)
+        self.lin3 = nn.Linear(encoding_dim,input_dim*10)
+        self.lin4 = nn.Linear(input_dim*10,input_dim*20)
         # DECODER
         self.tconv1 = nn.ConvTranspose2d(40, 1, (channel_count,1))
         self.tconv2 = nn.ConvTranspose2d(40,40,(1,2),2) 

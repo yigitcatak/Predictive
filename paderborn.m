@@ -1,6 +1,6 @@
 addpath('/Users/yigit/Documents/VSCode/Python/predictive/datasets/Paderborn/original');
 names=dir('/Users/yigit/Documents/VSCode/Python/predictive/datasets/Paderborn/original');
-Nloc=213;
+Nloc=212;
 var_names=cell(1,Nloc+1);
 var_names{end}='label';
 for i=1:Nloc
