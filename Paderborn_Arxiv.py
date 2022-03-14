@@ -27,7 +27,6 @@ y_train = y_train.to(DEVICE)
 y_test = y_test.to(DEVICE)
 weights = weights.to(DEVICE)
 
-#%%
 x_train = Batch(x_train,256*J)
 x_test = Batch(x_test,256*J)
 y_train = Batch(y_train,256)

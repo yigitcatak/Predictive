@@ -16,8 +16,6 @@ x_train = torch.load('datasets/Paderborn/presplit/x_train_vibration.pt')
 x_test = torch.load('datasets/Paderborn/presplit/x_test_vibration.pt')
 y_train = torch.load('datasets/Paderborn/presplit/y_train.pt')
 y_test = torch.load('datasets/Paderborn/presplit/y_test.pt')
-x_train = torch.unsqueeze(torch.unsqueeze(x_train,dim=1),dim=1)
-x_test = torch.unsqueeze(torch.unsqueeze(x_test,dim=1),dim=1)
 
 weights = torch.load('datasets/Paderborn/presplit/class_weights.pt')
 
@@ -27,7 +25,6 @@ y_train = y_train.to(DEVICE)
 y_test = y_test.to(DEVICE)
 weights = weights.to(DEVICE)
 
-#%%
 x_train = Batch(x_train,256*J)
 x_test = Batch(x_test,256*J)
 y_train = Batch(y_train,256)
