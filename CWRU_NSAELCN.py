@@ -23,6 +23,7 @@ y_train = y_train.to(DEVICE)
 y_test = y_test.to(DEVICE)
 weights = weights.to(DEVICE)
 
+#%%
 start = time.time()
 
 # Autoencoder
