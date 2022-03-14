@@ -37,10 +37,10 @@ y_test = Batch(y_test,256)
 start = time.time()
 
 # Autoencoder
-ae = Arxiv(N,K,Channel_Count).to(DEVICE)
+ae = NSAELCN(N,K).to(DEVICE)
 MSE = nn.MSELoss()
-ae_opt = torch.optim.Adam(ae.parameters(), lr=2e-4)
-ae_epochs = 4
+ae_opt = torch.optim.Adam(ae.parameters(), lr=3e-2)
+ae_epochs = 10
 
 ae_train_loss = []
 ae_test_loss = []
@@ -103,9 +103,9 @@ for epoch in range(cl_epochs):
     print(f"test accuracy is: {test_accuracy}")
 end = time.time()
 
-torch.save(ae.state_dict(), 'saves/Paderborn_Arxiv_AE.pt')
-torch.save(cl.state_dict(), 'saves/Paderborn_Arxiv_CL.pt')
+torch.save(ae.state_dict(), 'saves/Paderborn_NSAELCN_AE.pt')
+torch.save(cl.state_dict(), 'saves/Paderborn_NSAELCN_CL.pt')
 print(f'time elapsed: {(end-start)//60:.0f} minutes {(end-start)%60:.0f} seconds')
 # PlotResults(ae_train_loss,ae_test_loss,'Loss','MSE + L1 Norm')
-PlotResults(cl_train_loss,cl_test_loss,'Loss','Cross Entropy Loss',isSave=True,savename='Paderborn_Arxiv_Loss')
-PlotResults(cl_train_accuracy,cl_test_accuracy,'Accuracy','Accuracy',isSave=True,savename='Paderborn_Arxiv_Accuracy')
+PlotResults(cl_train_loss,cl_test_loss,'Loss','Cross Entropy Loss',isSave=True,savename='Paderborn_NSAELCN_Loss')
+PlotResults(cl_train_accuracy,cl_test_accuracy,'Accuracy','Accuracy',isSave=True,savename='Paderborn_NSAELCN_Accuracy')
