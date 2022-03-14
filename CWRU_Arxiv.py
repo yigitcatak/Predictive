@@ -39,10 +39,11 @@ y_train = y_train.to(DEVICE)
 y_test = y_test.to(DEVICE)
 weights = weights.to(DEVICE)
 
+#%%
 start = time.time()
 
 # Autoencoder
-ae = Arxiv(N,K).to(DEVICE)
+ae = Arxiv(N,K,Channel_Count).to(DEVICE)
 MSE = nn.MSELoss()
 ae_opt = torch.optim.Adam(ae.parameters(), lr=2e-4)
 ae_epochs = 4

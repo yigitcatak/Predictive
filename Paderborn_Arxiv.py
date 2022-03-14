@@ -4,6 +4,7 @@ from PREDICTIVE_DEFINITIONS import *
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
+Channel_Count = 1
 Class_Count = 10
 Sample_Length = 6400
 J = 30
@@ -30,7 +31,7 @@ weights = weights.to(DEVICE)
 start = time.time()
 
 # Autoencoder
-ae = Arxiv(N,K).to(DEVICE)
+ae = Arxiv(N,K,Channel_Count).to(DEVICE)
 MSE = nn.MSELoss()
 ae_opt = torch.optim.Adam(ae.parameters(), lr=2e-4)
 ae_epochs = 4
