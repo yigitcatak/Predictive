@@ -4,34 +4,21 @@ from PREDICTIVE_DEFINITIONS import *
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-Channel_Count = 2
 Class_Count = 10
-Sample_Length = 1200
+Sample_Length = 6400
 J = 30
 N = Sample_Length//J
 K = 400
 
 # Read Data
-if Channel_Count == 1:
-    x_train = torch.load('datasets/CWRU/presplit/x_train_fan_end.pt')
-    x_test = torch.load('datasets/CWRU/presplit/x_test_fan_end.pt')
-    y_train = torch.load('datasets/CWRU/presplit/y_train.pt')
-    y_test = torch.load('datasets/CWRU/presplit/y_test.pt')
-    x_train = torch.unsqueeze(torch.unsqueeze(x_train,dim=1),dim=1)
-    x_test = torch.unsqueeze(torch.unsqueeze(x_test,dim=1),dim=1)
+x_train = torch.load('datasets/Paderborn/presplit/x_train_vibration.pt')
+x_test = torch.load('datasets/Paderborn/presplit/x_test_vibration.pt')
+y_train = torch.load('datasets/Paderborn/presplit/y_train.pt')
+y_test = torch.load('datasets/Paderborn/presplit/y_test.pt')
+x_train = torch.unsqueeze(torch.unsqueeze(x_train,dim=1),dim=1)
+x_test = torch.unsqueeze(torch.unsqueeze(x_test,dim=1),dim=1)
 
-if Channel_Count == 2:
-    x_train = torch.load('datasets/CWRU/presplit/x_train_fan_end.pt')
-    x_test = torch.load('datasets/CWRU/presplit/x_test_fan_end.pt')
-    x_train2 = torch.load('datasets/CWRU/presplit/x_train_drive_end.pt')
-    x_test2 = torch.load('datasets/CWRU/presplit/x_test_drive_end.pt')
-    y_train = torch.load('datasets/CWRU/presplit/y_train.pt')
-    y_test = torch.load('datasets/CWRU/presplit/y_test.pt')
-    x_train = torch.unsqueeze(torch.cat([torch.unsqueeze(x_train,dim=1),torch.unsqueeze(x_train2,dim=1)],dim=1),dim=1)
-    x_test = torch.unsqueeze(torch.cat([torch.unsqueeze(x_test,dim=1),torch.unsqueeze(x_test2,dim=1)],dim=1),dim=1)
-    del x_train2, x_test2
-
-weights = torch.load('datasets/CWRU/presplit/class_weights.pt')
+weights = torch.load('datasets/Paderborn/presplit/class_weights.pt')
 
 x_train = x_train.to(DEVICE)
 x_test = x_test.to(DEVICE)
@@ -39,6 +26,7 @@ y_train = y_train.to(DEVICE)
 y_test = y_test.to(DEVICE)
 weights = weights.to(DEVICE)
 
+#%%
 start = time.time()
 
 # Autoencoder
@@ -108,5 +96,5 @@ end = time.time()
 
 print(f'time elapsed: {(end-start)//60:.0f} minutes {(end-start)%60:.0f} seconds')
 # PlotResults(ae_train_loss,ae_test_loss,'Loss','MSE + L1 Norm')
-PlotResults(cl_train_loss,cl_test_loss,'Loss','Cross Entropy Loss')
-PlotResults(cl_train_accuracy,cl_test_accuracy,'Accuracy','Accuracy')
+PlotResults(cl_train_loss,cl_test_loss,'Loss','Cross Entropy Loss',isSave=True,savename='Paderborn_Arxiv_Loss')
+PlotResults(cl_train_accuracy,cl_test_accuracy,'Accuracy','Accuracy',isSave=True,savename='Paderborn_Arxiv_Accuracy')

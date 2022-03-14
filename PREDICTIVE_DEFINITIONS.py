@@ -176,6 +176,7 @@ def PlotResults(train_results,test_results=None,label=None,ylabel=None,isSave=Fa
     plt.legend()
     if isSave:
         plt.savefig(f'{savename}.png',bbox_inches='tight')
-    plt.show()
+    else:
+        plt.show()
 
     

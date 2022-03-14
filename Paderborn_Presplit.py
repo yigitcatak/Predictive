@@ -6,8 +6,8 @@ J = 30
 N = Sample_Length//J
 
 Vibration = [f for f in listdir('datasets/Paderborn/segmented/vibration')]
-Current1 = [f for f in listdir('datasets/Paderborn/segmented/current1')]
-Current2 = [f for f in listdir('datasets/Paderborn/segmented/current2')]
+# Current1 = [f for f in listdir('datasets/Paderborn/segmented/current1')]
+# Current2 = [f for f in listdir('datasets/Paderborn/segmented/current2')]
 
 Class_Weights = dict(zip(list(range(3)),list(0 for i in range(3))))
 Seed = randint(0,1e6)
