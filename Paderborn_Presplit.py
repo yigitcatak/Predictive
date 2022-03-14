@@ -3,7 +3,7 @@ from PREDICTIVE_DEFINITIONS import *
 
 Sample_Length = 6400 #0.1 sec
 J = 30
-N = Sample_Length//J
+N = (Sample_Length//J) - ((Sample_Length//J)%4)
 
 Vibration = [f for f in listdir('datasets/Paderborn/segmented/vibration')]
 # Current1 = [f for f in listdir('datasets/Paderborn/segmented/current1')]

@@ -89,7 +89,7 @@ for epoch in range(cl_epochs):
         with torch.no_grad():
             encoded, _  = ae(x_batch)
         logits = cl(encoded)
-        loss = CrossEntropy(logits, y_train)
+        loss = CrossEntropy(logits, y_batch)
         loss.backward()
         cl_opt.step()
 
@@ -109,6 +109,8 @@ for epoch in range(cl_epochs):
     print(f"test accuracy is: {test_accuracy}")
 end = time.time()
 
+torch.save(ae.state_dict(), 'saves/CWRU_Arxiv_AE.pt')
+torch.save(cl.state_dict(), 'saves/CWRU_Arxiv_CL.pt')
 print(f'time elapsed: {(end-start)//60:.0f} minutes {(end-start)%60:.0f} seconds')
 # PlotResults(ae_train_loss,ae_test_loss,'Loss','MSE + L1 Norm')
 PlotResults(cl_train_loss,cl_test_loss,'Loss','Cross Entropy Loss',isSave=True,savename='CWRU_Arxiv_Loss')
