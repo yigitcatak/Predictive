@@ -8,7 +8,7 @@ Channel_Count = 2
 Class_Count = 10
 Sample_Length = 1200
 J = 30
-N = Sample_Length//J
+N = (Sample_Length//J) - ((Sample_Length//J)%4)
 K = 400
 
 # Read Data

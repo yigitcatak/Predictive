@@ -8,7 +8,7 @@ Channel_Count = 1
 Class_Count = 10
 Sample_Length = 6400
 J = 30
-N = Sample_Length//J
+N = (Sample_Length//J) - ((Sample_Length//J)%4)
 K = 400
 
 # Read Data
@@ -27,6 +27,7 @@ y_train = y_train.to(DEVICE)
 y_test = y_test.to(DEVICE)
 weights = weights.to(DEVICE)
 
+#%%
 x_train = Batch(x_train,256*J)
 x_test = Batch(x_test,256*J)
 y_train = Batch(y_train,256)

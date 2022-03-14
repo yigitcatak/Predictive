@@ -32,10 +32,10 @@ class Arxiv(nn.Module):
         self.conv2 = nn.Conv2d(40,40,(1,2),2)
         self.conv3 = nn.Conv2d(40,40, (1,11),padding=(0,5))
         # LINEAR
-        self.lin1 = nn.Linear(int(input_dim/2)*40,int(input_dim/4)*40)
-        self.lin2 = nn.Linear(int(input_dim/4)*40,encoding_dim)
-        self.lin3 = nn.Linear(encoding_dim,int(input_dim/4)*40)
-        self.lin4 = nn.Linear(int(input_dim/4)*40,int(input_dim/2)*40)
+        self.lin1 = nn.Linear((input_dim//2)*40,(input_dim//4)*40)
+        self.lin2 = nn.Linear((input_dim//4)*40,encoding_dim)
+        self.lin3 = nn.Linear(encoding_dim,(input_dim//4)*40)
+        self.lin4 = nn.Linear((input_dim//4)*40,(input_dim//2)*40)
         # DECODER
         self.tconv1 = nn.ConvTranspose2d(40, 1, (channel_count,1))
         self.tconv2 = nn.ConvTranspose2d(40,40,(1,2),2) 
@@ -45,7 +45,7 @@ class Arxiv(nn.Module):
         encoder_out = self.conv3(self.relu(self.drp1(self.relu(self.conv2(self.drp1(self.conv1(x)))))))
         encoder_out = self.lin1(self.flat(encoder_out))
         bottleneck = self.lin2(encoder_out)
-        decoder_out = torch.reshape(self.lin4(self.lin3(bottleneck)),(-1,40,1,int(self.input_dim/2)))
+        decoder_out = torch.reshape(self.lin4(self.lin3(bottleneck)),(-1,40,1,(self.input_dim//2)))
         decoder_out = self.tconv1(self.drp1(self.relu(self.tconv2(self.drp1(self.relu(self.tconv3(decoder_out)))))))
         return bottleneck, decoder_out
 
