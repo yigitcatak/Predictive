@@ -38,7 +38,7 @@ for name in Vibration:
 
     if name in train_names:
         train = data
-        y_train = label
+        y_train = 0 if label == 0 else 1
         train = Batch(train,J)
         train = list(zip(train,y_train))
         x_mixed_train += train
