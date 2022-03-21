@@ -32,7 +32,6 @@ x_test = Batch(x_test,256*J)
 y_train = Batch(y_train,256)
 y_test = Batch(y_test,256)
 
-#%%
 start = time.time()
 
 # Autoencoder
@@ -67,7 +66,7 @@ for epoch in range(ae_epochs):
 ae.eval()
 CrossEntropy = nn.CrossEntropyLoss(weight=weights)
 
-cl = Classifier(K,Class_Count,J).to(DEVICE)
+cl = Classifier(K,Class_Count,J,MLP=True).to(DEVICE)
 cl_opt = torch.optim.Adam(cl.parameters(), lr=1e-1)
 cl_epochs = 100
 
