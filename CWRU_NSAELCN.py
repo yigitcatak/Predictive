@@ -5,9 +5,7 @@ from PREDICTIVE_DEFINITIONS import *
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 Class_Count = 10
-Sample_Length = 1200
-J = 30
-N = Sample_Length//J
+N, J = Settings('CWRU')
 K = 400
 
 # Read Data

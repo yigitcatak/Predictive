@@ -1,9 +1,7 @@
 from PREDICTIVE_DEFINITIONS import *
 
 all_files = [f for f in listdir("datasets/CWRU/original")]
-Sample_Length = 1200
-J = 30
-N = Sample_Length//J
+N, J = Settings('CWRU')
 
 labels = {
             'B007': 0, 'B014': 1, 'B021': 2,

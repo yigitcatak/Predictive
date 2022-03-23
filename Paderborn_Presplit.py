@@ -1,9 +1,7 @@
 #%%
 from PREDICTIVE_DEFINITIONS import *
 
-Sample_Length = 6400 #0.1 sec
-J = 30
-N = (Sample_Length//J) - ((Sample_Length//J)%4)
+N, J = Settings('Paderborn')
 
 Vibration = [f for f in listdir('datasets/Paderborn/segmented/vibration')]
 # Current1 = [f for f in listdir('datasets/Paderborn/segmented/current1')]
@@ -37,12 +35,10 @@ for name in Vibration:
     label = df['label'].values.tolist()[:len(data):J]
 
     if name in train_names:
-        train = data
-        y_train = 0 if label == 0 else 1
-        train = Batch(train,J)
-        train = list(zip(train,y_train))
-        x_mixed_train += train
-        Class_Weights[label[0]] += len(train)
+        data = Batch(data,J)
+        data = list(zip(data,label))
+        x_mixed_train += data
+        Class_Weights[label[0]] += len(data)
 
     else:
         x_mixed_test += data
@@ -88,14 +84,14 @@ x_mixed_train = Flatten(x_mixed_train)
 # Random(Seed).shuffle(x_mixed_train3)
 # x_mixed_train3 = Flatten(x_mixed_train3)
 
-x_mixed_train, mean, eigen_vecs, diagonal_mat = Whiten(x_mixed_train)
-x_mixed_test = Whiten(x_mixed_test, mean, eigen_vecs, diagonal_mat)
+x_mixed_train, mean, whitening_mat = Whiten(x_mixed_train)
+x_mixed_test = Whiten(x_mixed_test, mean, whitening_mat)
 
-# x_mixed_train2, mean, eigen_vecs, diagonal_mat = Whiten(x_mixed_train2)
-# x_mixed_test2 = Whiten(x_mixed_test2, mean, eigen_vecs, diagonal_mat)
+# x_mixed_train2, mean, whitening_mat = Whiten(x_mixed_train2)
+# x_mixed_test2 = Whiten(x_mixed_test2, mean, whitening_mat)
 
-# x_mixed_train3, mean, eigen_vecs, diagonal_mat = Whiten(x_mixed_train3)
-# x_mixed_test3 = Whiten(x_mixed_test3, mean, eigen_vecs, diagonal_mat)
+# x_mixed_train3, mean, whitening_mat = Whiten(x_mixed_train3)
+# x_mixed_test3 = Whiten(x_mixed_test3, mean, whitening_mat)
 
 x_mixed_train = torch.tensor(x_mixed_train,dtype=torch.float32)
 x_mixed_test = torch.tensor(x_mixed_test,dtype=torch.float32)
@@ -119,3 +115,7 @@ torch.save(x_mixed_test,'datasets/Paderborn/presplit/x_test_vibration.pt')
 # torch.save(x_mixed_test3,'datasets/Paderborn/presplit/x_test_current2.pt')
 torch.save(y_train,'datasets/Paderborn/presplit/y_train.pt')
 torch.save(y_test,'datasets/Paderborn/presplit/y_test.pt')
+
+with open('saves/Paderborn_Train_Names.txt','w') as namesfile:
+    for name in train_names:
+        namesfile.write(name + '\n')

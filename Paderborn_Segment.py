@@ -4,7 +4,7 @@ from PREDICTIVE_DEFINITIONS import *
 all_files = [f for f in listdir('datasets/Paderborn/original')]
 all_types = ['K001','K002','K003','K004','K005','KA04','KA15','KA16','KA22','KA30','KI04','KI14','KI16','KI18','KI21']
 Sample_Length = 6400
-J = 30
+J = 15
 N = (Sample_Length//J) - ((Sample_Length//J)%4)
 
 temp_df = pd.DataFrame()
@@ -23,12 +23,12 @@ for ftype in all_types:
             name = name[12:16]
             if 'K0' in name:
                 label = 0
-            # elif 'KI' in name:
-            #     label = 1
-            # elif 'KA' in name:
-            #     label = 2
-            else:
+            elif 'KI' in name:
                 label = 1
+            elif 'KA' in name:
+                label = 2
+            # else:
+            #     label = 1
 
             segmented = Batch(df[0].tolist(), N)
             df = pd.DataFrame(segmented)

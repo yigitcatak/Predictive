@@ -6,9 +6,7 @@ DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 Channel_Count = 1
 Class_Count = 3
-Sample_Length = 6400
-J = 30
-N = (Sample_Length//J) - ((Sample_Length//J)%4)
+N, J = Settings('Paderborn')
 K = 400
 
 # Read Data

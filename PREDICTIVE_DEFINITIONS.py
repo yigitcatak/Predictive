@@ -1,13 +1,15 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+import time
+from os import listdir
+from random import Random, randint, sample, shuffle
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from os import listdir
-from random import shuffle, randint, Random, sample
 import scipy.io
-import time
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
 
 # NETWORKS
 class NSAELCN(nn.Module):
@@ -123,6 +125,16 @@ def ClassifierAccuracy(x,y,ae,cl,isBatched=False):
     return acc.item()
 
 # OTHER
+def Settings(dataset):
+    if dataset == 'CWRU':
+        Sample_Length = 1200
+        J = 30
+    elif dataset == 'Paderborn':
+        Sample_Length = 6400
+        J = 15
+    N = (Sample_Length//J) - ((Sample_Length//J)%4)
+    return N,J
+
 def Batch(l, J): #Also used to group segments as a sample
     def inner():
         for i in range(0, len(l)-(len(l)%J), J):
@@ -141,25 +153,28 @@ def RandomCombination(l, r):
     indices = sorted(sample(range(n), r))
     return list(l[i] for i in indices)
 
-def Whiten(x, mean=None, eigen_vecs=None, diagonal_mat=None ):
+def Whiten(x, mean=None, whitening_mat=None ):
     #need to type-check because comparing numpy array with None directly 
     #(array == None) raises an error
     t = type(None)
-    if (type(mean) == t) or (type(eigen_vecs) == t) or (type(diagonal_mat) == t):
+    if (type(mean) == t) or (type(whitening_mat) == t):
         x = np.array(x)
         mean = x.mean(axis=0)
         x -= mean
         cov = np.cov(x, rowvar=False) #unbiased / divided by N-1
         eigenVals, eigen_vecs = np.linalg.eig(cov)
         diagonal_mat = np.diag(1/((eigenVals)**0.5))
-        uncorrelated = np.dot(x,eigen_vecs)
-        whitened = np.dot(uncorrelated, diagonal_mat)
-        return whitened, mean, eigen_vecs, diagonal_mat
+        
+        # uncorrelated = np.dot(x,eigen_vecs)
+        # whitened = np.dot(uncorrelated, diagonal_mat)
+
+        whitening_mat = eigen_vecs @ diagonal_mat
+        whitened = x @ whitening_mat
+        return whitened, mean, whitening_mat
     else:
         x = np.array(x)
         x -= mean
-        uncorrelated = np.dot(x,eigen_vecs)
-        whitened = np.dot(uncorrelated, diagonal_mat)
+        whitened = x @ whitening_mat
         return whitened
 
 def PlotResults(train_results,test_results=None,label=None,ylabel=None,isSave=False,savename='figure'):
@@ -175,7 +190,7 @@ def PlotResults(train_results,test_results=None,label=None,ylabel=None,isSave=Fa
         plt.ylabel(ylabel)
     plt.legend()
     if isSave:
-        plt.savefig(f'{savename}.png',bbox_inches='tight')
+        plt.savefig(f'graphs/{savename}.png',bbox_inches='tight')
     else:
         plt.show()
 
