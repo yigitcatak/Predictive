@@ -26,6 +26,8 @@ class Arxiv(nn.Module):
     def __init__(self,input_dim,encoding_dim,channel_count):
         super(Arxiv,self).__init__()
         self.drp1 = nn.Dropout(p = 0.1)
+        self.drp5 = nn.Dropout(p = 0.5)
+        self.drp9 = nn.Dropout(p = 0.9)
         self.flat = nn.Flatten()
         self.relu = nn.ReLU()
         self.input_dim = input_dim
@@ -45,9 +47,10 @@ class Arxiv(nn.Module):
 
     def forward(self,x):
         encoder_out = self.conv3(self.relu(self.drp1(self.relu(self.conv2(self.drp1(self.conv1(x)))))))
-        encoder_out = self.lin1(self.flat(encoder_out))
-        bottleneck = self.lin2(encoder_out)
-        decoder_out = torch.reshape(self.lin4(self.lin3(bottleneck)),(-1,40,1,(self.input_dim//2)))
+        encoder_out = self.flat(encoder_out)
+        bottleneck = self.drp5(self.lin2(self.drp9(self.lin1(encoder_out))))
+        decoder_out = self.lin4(self.drp9((self.lin3(bottleneck))))
+        decoder_out = torch.reshape(decoder_out,(-1,40,1,(self.input_dim//2)))
         decoder_out = self.tconv1(self.drp1(self.relu(self.tconv2(self.drp1(self.relu(self.tconv3(decoder_out)))))))
         return bottleneck, decoder_out
 

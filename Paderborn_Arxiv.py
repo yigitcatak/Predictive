@@ -7,7 +7,7 @@ DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 Channel_Count = 1
 Class_Count = 3
 N, J = Settings('Paderborn')
-K = 10*N
+K = N//2
 
 # Read Data
 x_train = torch.load('datasets/Paderborn/presplit/x_train_vibration.pt')
@@ -64,7 +64,7 @@ for epoch in range(ae_epochs):
 ae.eval()
 CrossEntropy = nn.CrossEntropyLoss(weight=weights)
 
-cl = Classifier(K,Class_Count,J,MLP=False).to(DEVICE)
+cl = Classifier(K,Class_Count,J,MLP=True).to(DEVICE)
 cl_opt = torch.optim.Adam(cl.parameters(), lr=1e-1)
 cl_epochs = 100
 
