@@ -10,7 +10,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
 # NETWORKS
 class NSAELCN(nn.Module):
     def __init__(self,input_dim,encoding_dim):
@@ -66,7 +65,6 @@ class Classifier(nn.Module):
     def forward(self,x):
         # get the mean segment of each J segment
         features = torch.stack([torch.mean(x[range(i,i+self.segment_count)], dim=0) for i in range(0,len(x),self.segment_count)])
-
         logits = self.lin2(self.relu(self.lin1(features))) if self.isMLP else self.lin2(features)
         return logits
 
