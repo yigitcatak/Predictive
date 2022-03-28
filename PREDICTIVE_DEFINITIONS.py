@@ -6,9 +6,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy.io
+import seaborn as sns
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from sklearn.metrics import confusion_matrix
+
 
 # NETWORKS
 class NSAELCN(nn.Module):
@@ -24,9 +27,9 @@ class NSAELCN(nn.Module):
 class Arxiv(nn.Module):
     def __init__(self,input_dim,encoding_dim,channel_count):
         super(Arxiv,self).__init__()
-        self.drp1 = nn.Dropout(p = 0.1)
-        self.drp5 = nn.Dropout(p = 0.5)
-        self.drp9 = nn.Dropout(p = 0.9)
+        self.drp = nn.Dropout(p = 0.5)
+        self.drp_bottleneck = nn.Dropout(p = 0.0)
+        self.drp_linear = nn.Dropout(p = 0.0)
         self.flat = nn.Flatten()
         self.relu = nn.ReLU()
         self.input_dim = input_dim
@@ -45,12 +48,12 @@ class Arxiv(nn.Module):
         self.tconv3 = nn.ConvTranspose2d(40,40,(1,11),padding=(0,5))
 
     def forward(self,x):
-        encoder_out = self.conv3(self.relu(self.drp1(self.relu(self.conv2(self.drp1(self.conv1(x)))))))
+        encoder_out = self.conv3(self.relu(self.drp(self.relu(self.conv2(self.drp(self.conv1(x)))))))
         encoder_out = self.flat(encoder_out)
-        bottleneck = self.drp5(self.lin2(self.drp9(self.lin1(encoder_out))))
-        decoder_out = self.lin4(self.drp9((self.lin3(bottleneck))))
+        bottleneck = self.drp_bottleneck(self.lin2(self.drp_linear(self.lin1(encoder_out))))
+        decoder_out = self.lin4(self.drp_linear((self.lin3(bottleneck))))
         decoder_out = torch.reshape(decoder_out,(-1,40,1,(self.input_dim//2)))
-        decoder_out = self.tconv1(self.drp1(self.relu(self.tconv2(self.drp1(self.relu(self.tconv3(decoder_out)))))))
+        decoder_out = self.tconv1(self.drp(self.relu(self.tconv2(self.drp(self.relu(self.tconv3(decoder_out)))))))
         return bottleneck, decoder_out
 
 class Classifier(nn.Module):
@@ -60,12 +63,14 @@ class Classifier(nn.Module):
         self.lin2 = nn.Linear(encoding_dim, class_count, bias=False)
         self.relu = nn.ReLU()
         self.segment_count = segment_count
-        self.isMLP = MLP            
+        self.isMLP = MLP    
+        self.drp = nn.Dropout(0.0)
+        self.drp = nn.Dropout(0.0)     
 
     def forward(self,x):
         # get the mean segment of each J segment
         features = torch.stack([torch.mean(x[range(i,i+self.segment_count)], dim=0) for i in range(0,len(x),self.segment_count)])
-        logits = self.lin2(self.relu(self.lin1(features))) if self.isMLP else self.lin2(features)
+        logits = self.lin2(self.drp(self.relu(self.lin1(self.drp(features))))) if self.isMLP else self.lin2(features)
         return logits
 
 # EVALUATIONS
@@ -195,4 +200,29 @@ def PlotResults(train_results,test_results=None,label=None,ylabel=None,isSave=Fa
     else:
         plt.show()
 
+def ConfusionMat(x,y,ae,cl,class_count,isBatched=False,plot=True):
+    with torch.no_grad():
+        cm = np.zeros((class_count,class_count),dtype=np.int64)
+        if isBatched:
+            for x_batch,y_batch in zip(x,y):
+                x_batch, _ = ae(x_batch)
+                logits = cl(x_batch)
+                pred = torch.argmax(F.log_softmax(logits,dim=1),dim=1)
+                pred = pred.to('cpu')
+                y_batch = y_batch.to('cpu')
+                cm += confusion_matrix(y_batch,pred,labels=[i for i in range(class_count)])
+        else:
+            x, _ = ae(x)
+            logits = cl(x)
+            pred = torch.argmax(F.log_softmax(logits,dim=1),dim=1)
+            pred = pred.to('cpu')
+            y = y.to('cpu')
+            cm += confusion_matrix(y,pred,labels=[i for i in range(class_count)])
     
+    if plot:
+        plt.figure()
+        ax = sns.heatmap(cm, annot=True, fmt='d', linewidths=.5, square=True)
+        plt.title('Confusion Matrix')
+        plt.xlabel('Predicted')
+        plt.ylabel('Actual')
+    return cm    
