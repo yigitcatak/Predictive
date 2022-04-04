@@ -35,7 +35,7 @@ start = time.time()
 # Autoencoder
 ae = Arxiv(N,K,Channel_Count).to(DEVICE)
 MSE = nn.MSELoss()
-ae_opt = torch.optim.Adam(ae.parameters(), lr=2e-4)
+ae_opt = torch.optim.Adam(ae.parameters(), lr=1e-5)
 ae_epochs = 4
 
 ae_train_loss = []
@@ -63,13 +63,16 @@ for epoch in range(ae_epochs):
 torch.save(ae.state_dict(), 'saves/Paderborn_Arxiv_AE.pt')
 
 # Classifier
+# lrs = [1e-3, 5e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1]
+# for lr in lrs:
+    # print(f'learing rate: {lr}')
 ae = Arxiv(N,K,Channel_Count).to(DEVICE)
 ae.load_state_dict(torch.load('saves/Paderborn_Arxiv_AE.pt'))
 ae.eval()
 CrossEntropy = nn.CrossEntropyLoss(weight=weights)
 
 cl = Classifier(K,Class_Count,J,MLP=True).to(DEVICE)
-cl_opt = torch.optim.Adam(cl.parameters(), lr=0.5e-1)
+cl_opt = torch.optim.Adam(cl.parameters(), lr=1e-1)
 cl_epochs = 10
 
 cl_train_loss = []
@@ -105,7 +108,8 @@ end = time.time()
 
 torch.save(cl.state_dict(), 'saves/Paderborn_Arxiv_CL.pt')
 print(f'time elapsed: {(end-start)//60:.0f} minutes {(end-start)%60:.0f} seconds')
-PlotResults(ae_train_loss,ae_test_loss,'Loss','MSE + L1 Norm')
+# PlotResults(ae_train_loss,ae_test_loss,'Loss','MSE + L1 Norm')
 PlotResults(cl_train_loss,cl_test_loss,'Loss','Cross Entropy Loss',isSave=True,savename='Paderborn_Arxiv_Loss')
 PlotResults(cl_train_accuracy,cl_test_accuracy,'Accuracy','Accuracy',isSave=True,savename='Paderborn_Arxiv_Accuracy')
 _ = ConfusionMat(x_test,y_test,ae,cl,Class_Count,isBatched=True)
+print('\n\n\n')

@@ -2,7 +2,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+#%%
 Sample_Length = 6400
 J = 30
 # N = (Sample_Length//J) - ((Sample_Length//J)%4)

@@ -183,6 +183,15 @@ def Whiten(x, mean=None, whitening_mat=None ):
         whitened = x @ whitening_mat
         return whitened
 
+def Zeroone(x, maxim=None, minim=None):
+    t = type(None)
+    if (type(maxim) == t) or (type(minim) == t):
+        maxim = torch.max(x)
+        minim = torch.min(x)
+        return (x-minim)/(maxim-minim), maxim, minim
+    else:
+        return (x-minim)/(maxim-minim)
+
 def PlotResults(train_results,test_results=None,label=None,ylabel=None,isSave=False,savename='figure'):
     plt.figure()
     plt.plot(range(1,len(train_results)+1),train_results,label='Train' if label is None else f'Train {label}')

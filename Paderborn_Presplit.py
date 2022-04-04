@@ -2,7 +2,8 @@
 from PREDICTIVE_DEFINITIONS import *
 
 N, J = Settings('Paderborn')
-
+whiten = True
+zeroone = False
 Vibration = [f for f in listdir('datasets/Paderborn/segmented/vibration')]
 # Current1 = [f for f in listdir('datasets/Paderborn/segmented/current1')]
 # Current2 = [f for f in listdir('datasets/Paderborn/segmented/current2')]
@@ -84,14 +85,16 @@ x_mixed_train = Flatten(x_mixed_train)
 # Random(Seed).shuffle(x_mixed_train3)
 # x_mixed_train3 = Flatten(x_mixed_train3)
 
-x_mixed_train, mean, whitening_mat = Whiten(x_mixed_train)
-x_mixed_test = Whiten(x_mixed_test, mean, whitening_mat)
+if whiten:
+    x_mixed_train, mean, whitening_mat = Whiten(x_mixed_train)
+    x_mixed_test = Whiten(x_mixed_test, mean, whitening_mat)
 
-# x_mixed_train2, mean, whitening_mat = Whiten(x_mixed_train2)
-# x_mixed_test2 = Whiten(x_mixed_test2, mean, whitening_mat)
+    # x_mixed_train2, mean, whitening_mat = Whiten(x_mixed_train2)
+    # x_mixed_test2 = Whiten(x_mixed_test2, mean, whitening_mat)
 
-# x_mixed_train3, mean, whitening_mat = Whiten(x_mixed_train3)
-# x_mixed_test3 = Whiten(x_mixed_test3, mean, whitening_mat)
+    # x_mixed_train3, mean, whitening_mat = Whiten(x_mixed_train3)
+    # x_mixed_test3 = Whiten(x_mixed_test3, mean, whitening_mat)
+
 
 x_mixed_train = torch.tensor(x_mixed_train,dtype=torch.float32)
 x_mixed_test = torch.tensor(x_mixed_test,dtype=torch.float32)
@@ -101,6 +104,10 @@ x_mixed_test = torch.tensor(x_mixed_test,dtype=torch.float32)
 # x_mixed_test3 = torch.tensor(x_mixed_test3,dtype=torch.float32)
 y_train = torch.tensor(y_mixed_train,dtype=torch.long)
 y_test = torch.tensor(y_mixed_test,dtype=torch.long)
+
+if zeroone:
+    x_mixed_train, maxim, minim = Zeroone(x_mixed_train)
+    x_mixed_test = Zeroone(x_mixed_test, maxim, minim)
 
 Class_Weights = torch.tensor(list(Class_Weights.values()),dtype=torch.float32)
 Class_Weights = 1/Class_Weights
