@@ -9,6 +9,11 @@ Class_Count = 10
 N, J = Settings('CWRU')
 K = 400
 
+results_train_loss = []
+results_train_accuracy = []
+results_test_loss = []
+results_test_accuracy = []
+
 # Read Data
 if Channel_Count == 1:
     x_train = torch.load('datasets/CWRU/presplit/x_train_fan_end.pt')
@@ -48,7 +53,7 @@ ae_epochs = 4
 ae_train_loss = []
 ae_test_loss = []
 for epoch in range(ae_epochs):
-    print(f'epoch: {epoch+1}/{ae_epochs}')
+    # print(f'epoch: {epoch+1}/{ae_epochs}')
     ae_opt.zero_grad()
     encoded_features, reconstructed = ae(x_train)
     loss = 0
@@ -66,9 +71,14 @@ for epoch in range(ae_epochs):
     # print(f'train loss: {ae_train_loss[-1]}')
     # print(f'test loss: {ae_test_loss[-1]}')
 
-# Classifier
 ae.eval()
-CrossEntropy = nn.CrossEntropyLoss(weight=weights)
+# Classifier
+
+results_train_loss2 = []
+results_train_accuracy2 = []
+results_test_loss2 = []
+results_test_accuracy2 = []
+CrossEntropy = nn.CrossEntropyLoss()
 
 cl = Classifier(K,Class_Count,J).to(DEVICE)
 cl_opt = torch.optim.Adam(cl.parameters(), lr=1e-1)
@@ -79,7 +89,7 @@ cl_test_loss = []
 cl_train_accuracy = []
 cl_test_accuracy = []
 for epoch in range(cl_epochs):
-    print(f"epoch: {epoch+1}/{cl_epochs}")
+    # print(f"epoch: {epoch+1}/{cl_epochs}")
     cl_opt.zero_grad()
     with torch.no_grad():
         encoded, _  = ae(x_train)
@@ -88,25 +98,39 @@ for epoch in range(cl_epochs):
     loss.backward()
     cl_opt.step()
 
-    cl.eval()
-    train_loss,train_accuracy = ClassifierEvaluate(x_train,y_train,ae,cl)
-    test_loss,test_accuracy = ClassifierEvaluate(x_test,y_test,ae,cl)
-    cl.train()
+    if (epoch+1)%50 == 0:
+        cl.eval()
+        train_loss,train_accuracy = ClassifierEvaluate(x_train,y_train,ae,cl)
+        test_loss,test_accuracy = ClassifierEvaluate(x_test,y_test,ae,cl)
+        cl.train()
+        results_train_loss2.append(train_loss)
+        results_train_accuracy2.append(train_accuracy)
+        results_test_loss2.append(test_loss)
+        results_test_accuracy2.append(test_accuracy)
+    # cl.eval()
+    # train_loss,train_accuracy = ClassifierEvaluate(x_train,y_train,ae,cl)
+    # test_loss,test_accuracy = ClassifierEvaluate(x_test,y_test,ae,cl)
+    # cl.train()
 
-    cl_train_loss.append(train_loss)
-    cl_test_loss.append(test_loss) 
-    cl_train_accuracy.append(train_accuracy)
-    cl_test_accuracy.append(test_accuracy)
+    # cl_train_loss.append(train_loss)
+    # cl_test_loss.append(test_loss) 
+    # cl_train_accuracy.append(train_accuracy)
+    # cl_test_accuracy.append(test_accuracy)
 
-    print(f"train loss is: {train_loss}")
-    print(f"test loss is: {test_loss}")
-    print(f"train accuracy is: {train_accuracy}")
-    print(f"test accuracy is: {test_accuracy}")
+    # print(f"train loss is: {train_loss}")
+    # print(f"test loss is: {test_loss}")
+    # print(f"train accuracy is: {train_accuracy}")
+    # print(f"test accuracy is: {test_accuracy}")
 end = time.time()
-
-torch.save(ae.state_dict(), 'saves/CWRU_Arxiv_AE.pt')
-torch.save(cl.state_dict(), 'saves/CWRU_Arxiv_CL.pt')
+results_train_loss.append(results_train_loss2)
+results_train_accuracy.append(results_train_accuracy2)
+results_test_loss.append(results_test_loss2)
+results_test_accuracy.append(results_test_accuracy2)
 print(f'time elapsed: {(end-start)//60:.0f} minutes {(end-start)%60:.0f} seconds')
 # PlotResults(ae_train_loss,ae_test_loss,'Loss','MSE + L1 Norm')
-PlotResults(cl_train_loss,cl_test_loss,'Loss','Cross Entropy Loss',isSave=True,savename='CWRU_Arxiv_Loss')
-PlotResults(cl_train_accuracy,cl_test_accuracy,'Accuracy','Accuracy',isSave=True,savename='CWRU_Arxiv_Accuracy')
+# PlotResults(cl_train_loss,cl_test_loss,'Loss','Cross Entropy Loss',isSave=True,savename='CWRU_Arxiv_Loss')
+# PlotResults(cl_train_accuracy,cl_test_accuracy,'Accuracy','Accuracy',isSave=True,savename='CWRU_Arxiv_Accuracy')
+pd.DataFrame(results_train_loss).to_csv('results/results_train_loss2.csv', index=False)
+pd.DataFrame(results_train_accuracy).to_csv('results/results_train_accuracy2.csv', index=False)
+pd.DataFrame(results_test_loss).to_csv('results/results_test_loss2.csv', index=False)
+pd.DataFrame(results_test_accuracy).to_csv('results/results_test_accuracy2.csv', index=False)

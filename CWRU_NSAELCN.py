@@ -6,7 +6,7 @@ DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 Class_Count = 10
 N, J = Settings('CWRU')
-K = 400
+K = 100
 
 # Read Data
 x_train = torch.load('datasets/CWRU/presplit/x_train_fan_end.pt')
@@ -21,10 +21,9 @@ y_train = y_train.to(DEVICE)
 y_test = y_test.to(DEVICE)
 weights = weights.to(DEVICE)
 
-#%%
 start = time.time()
 
-# Autoencoder
+# Autoencoder   
 ae = NSAELCN(N,K).to(DEVICE)
 MSE = nn.MSELoss()
 ae_opt = torch.optim.LBFGS(ae.parameters(), lr=3e-2)
@@ -46,12 +45,12 @@ for epoch in range(ae_epochs):
         return loss
     ae_opt.step(closure)
     
-    ae.eval()
-    ae_train_loss.append(AutoencoderLoss(x_train,ae))
-    ae_test_loss.append(AutoencoderLoss(x_test,ae))
-    ae.train()
-    print(f'train loss: {ae_train_loss[-1]}')
-    print(f'test loss: {ae_test_loss[-1]}')
+    # ae.eval()
+    # ae_train_loss.append(AutoencoderLoss(x_train,ae))
+    # ae_test_loss.append(AutoencoderLoss(x_test,ae))
+    # ae.train()
+    # print(f'train loss: {ae_train_loss[-1]}')
+    # print(f'test loss: {ae_test_loss[-1]}')
 
 # Classifier
 ae.eval()
@@ -92,6 +91,6 @@ for epoch in range(cl_epochs):
 end = time.time()
 
 print(f'time elapsed: {(end-start)//60:.0f} minutes {(end-start)%60:.0f} seconds')
-PlotResults(ae_train_loss,ae_test_loss,'Loss','MSE + L1 Norm')
-PlotResults(cl_train_loss,cl_test_loss,'Loss','Cross Entropy Loss')
-PlotResults(cl_train_accuracy,cl_test_accuracy,'Accuracy','Accuracy')
+# PlotResults(ae_train_loss,ae_test_loss,'Loss','MSE + L1 Norm')
+PlotResults(cl_train_loss,cl_test_loss,'Loss','Cross Entropy Loss',isSave=True,savename='CWRU_NSAELCN_Loss')
+PlotResults(cl_train_accuracy,cl_test_accuracy,'Accuracy','Accuracy',isSave=True,savename='CWRU_NSAELCN_Accuracy')

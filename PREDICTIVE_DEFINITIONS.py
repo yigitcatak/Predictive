@@ -27,7 +27,7 @@ class NSAELCN(nn.Module):
 class Arxiv(nn.Module):
     def __init__(self,input_dim,encoding_dim,channel_count):
         super(Arxiv,self).__init__()
-        self.drp = nn.Dropout(p = 0.5)
+        self.drp = nn.Dropout(p = 0.1)
         self.drp_bottleneck = nn.Dropout(p = 0.0)
         self.drp_linear = nn.Dropout(p = 0.0)
         self.flat = nn.Flatten()
@@ -137,7 +137,7 @@ def Settings(dataset):
         J = 30
     elif dataset == 'Paderborn':
         Sample_Length = 6400
-        J = 15
+        J = 30
     N = (Sample_Length//J) - ((Sample_Length//J)%4)
     return N,J
 
