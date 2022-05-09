@@ -10,9 +10,10 @@ OUTTER = ['KA04','KA15','KA16','KA22','KA30']
 TRAIN_NAMES = RandomCombination(HEALTHY,3) + RandomCombination(INNER,3) + RandomCombination(OUTTER,3)
 N, J = Settings('Paderborn')
 SEED = randint(0,1e6)
-TRAIN_SIZE = 0.1
+CLASS_COUNT = 2
+TRAIN_SIZE = 1
 
-weights = dict(zip(list(range(3)),list(0 for i in range(3))))
+weights = dict(zip(list(range(CLASS_COUNT)),list(0 for i in range(CLASS_COUNT))))
 y_mixed_train = []
 y_mixed_test = []
 x_mixed_train = []
@@ -29,10 +30,8 @@ for name in ALL_FILES:
     labelname = name[:2]
     if 'K0' == labelname:
         label = 0
-    elif 'KI' == labelname:
+    else:
         label = 1
-    elif 'KA' == labelname:
-        label = 2
 
     segmented = Batch(data, N)
     segmented = segmented[:len(segmented)-(len(segmented)%J)]    
