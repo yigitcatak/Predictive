@@ -1,4 +1,5 @@
 #%%
+# CWRU DATA PREPERATION
 from PREDICTIVE_DEFINITIONS import *
 
 ALL_FILES = [f for f in listdir("datasets/CWRU/original")]

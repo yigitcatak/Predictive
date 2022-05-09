@@ -1,4 +1,5 @@
 #%%
+# PADERBORN DATA PREPEARATION
 from PREDICTIVE_DEFINITIONS import *
 
 ALL_FILES = [f for f in listdir('datasets/Paderborn/original')]
@@ -9,6 +10,7 @@ OUTTER = ['KA04','KA15','KA16','KA22','KA30']
 TRAIN_NAMES = RandomCombination(HEALTHY,3) + RandomCombination(INNER,3) + RandomCombination(OUTTER,3)
 N, J = Settings('Paderborn')
 SEED = randint(0,1e6)
+TRAIN_SIZE = 0.1
 
 weights = dict(zip(list(range(3)),list(0 for i in range(3))))
 y_mixed_train = []
@@ -33,17 +35,19 @@ for name in ALL_FILES:
         label = 2
 
     segmented = Batch(data, N)
-    segmented = segmented[:len(segmented)-(len(segmented)%J)]
-
-    y = [label for i in range(0,len(segmented),J)]
+    segmented = segmented[:len(segmented)-(len(segmented)%J)]    
 
     if name in TRAIN_NAMES:
+        idx = int(len(segmented)*TRAIN_SIZE - (len(segmented)*TRAIN_SIZE)%J)
+        segmented = segmented[:idx]
+        y = [label for i in range(0,len(segmented),J)]
         segmented = Batch(segmented,J)
         segmented = list(zip(segmented,y))
         x_mixed_train += segmented
         weights[label] += len(segmented)
     
     else:
+        y = [label for i in range(0,len(segmented),J)]
         x_mixed_test += segmented
         y_mixed_test += y
 
