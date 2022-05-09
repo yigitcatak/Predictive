@@ -7,7 +7,7 @@ DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 CLASS_COUNT = 3
 N, J = Settings('Paderborn')
-K = 400
+K = N//2
 
 # Read Data
 x_train = torch.load('datasets/Paderborn/presplit/x_train_vibration.pt')
@@ -28,7 +28,6 @@ x_test = Batch(x_test,256*J)
 y_train = Batch(y_train,256)
 y_test = Batch(y_test,256)
 
-#%%
 start = time.time()
 
 # Autoencoder
