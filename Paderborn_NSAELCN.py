@@ -62,9 +62,9 @@ for epoch in range(ae_epochs):
 ae.eval()
 CrossEntropy = nn.CrossEntropyLoss(weight=weights)
 
-cl = Classifier(K,CLASS_COUNT,J).to(DEVICE)
+cl = Classifier(K,CLASS_COUNT,J,MLP=True).to(DEVICE)
 cl_opt = torch.optim.Adam(cl.parameters(), lr=1e-1)
-cl_epochs = 100
+cl_epochs = 10
 
 cl_train_loss = []
 cl_test_loss = []
