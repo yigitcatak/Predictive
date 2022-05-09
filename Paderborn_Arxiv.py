@@ -7,7 +7,7 @@ DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 TRAIN_AE = True
 CHANNEL_COUNT = 1
-CLASS_COUNT = 3
+CLASS_COUNT = 2
 N, J = Settings('Paderborn')
 K = N//2
 
