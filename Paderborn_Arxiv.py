@@ -4,8 +4,9 @@ from PREDICTIVE_DEFINITIONS import *
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-Channel_Count = 1
-Class_Count = 3
+TRAIN_AE = True
+CHANNEL_COUNT = 1
+CLASS_COUNT = 3
 N, J = Settings('Paderborn')
 K = N//2
 
@@ -33,45 +34,42 @@ y_test = Batch(y_test,256)
 start = time.time()
 
 # Autoencoder
-ae = Arxiv(N,K,Channel_Count).to(DEVICE)
-MSE = nn.MSELoss()
-ae_opt = torch.optim.Adam(ae.parameters(), lr=1e-5)
-ae_epochs = 4
+if TRAIN_AE:
+    ae = Arxiv(N,K,CHANNEL_COUNT).to(DEVICE)
+    MSE = nn.MSELoss()
+    ae_opt = torch.optim.Adam(ae.parameters(), lr=2e-4)
+    ae_epochs = 4
 
-ae_train_loss = []
-ae_test_loss = []
-for epoch in range(ae_epochs):
-    print(f'epoch: {epoch+1}/{ae_epochs}')
-    for x_batch in x_train:
-        ae_opt.zero_grad()
-        encoded_features, reconstructed = ae(x_batch)
-        loss = 0
-        for x in encoded_features:
-            loss += x.norm(1)
-        loss = loss*0.25/len(x_batch)
-        loss += MSE(reconstructed, x_batch)
-        loss.backward()
-        ae_opt.step()
-    
-    ae.eval()
-    ae_train_loss.append(AutoencoderLoss(x_train,ae,isBatched=True))
-    ae_test_loss.append(AutoencoderLoss(x_test,ae,isBatched=True))
-    ae.train()
-    print(f'train loss: {ae_train_loss[-1]}')
-    print(f'test loss: {ae_test_loss[-1]}')
+    ae_train_loss = []
+    ae_test_loss = []
+    for epoch in range(ae_epochs):
+        print(f'epoch: {epoch+1}/{ae_epochs}')
+        for x_batch in x_train:
+            ae_opt.zero_grad()
+            encoded_features, reconstructed = ae(x_batch)
+            loss = 0
+            for x in encoded_features:
+                loss += x.norm(1)
+            loss = loss*0.25/len(x_batch)
+            loss += MSE(reconstructed, x_batch)
+            loss.backward()
+            ae_opt.step()
+        
+        # ae.eval()
+        # ae_train_loss.append(AutoencoderLoss(x_train,ae,isBatched=True))
+        # ae_test_loss.append(AutoencoderLoss(x_test,ae,isBatched=True))
+        # ae.train()
+        # print(f'train loss: {ae_train_loss[-1]}')
+        # print(f'test loss: {ae_test_loss[-1]}')
 
-torch.save(ae.state_dict(), 'saves/Paderborn_Arxiv_AE.pt')
+    torch.save(ae.state_dict(), 'saves/Paderborn_Arxiv_AE.pt')
 
-# Classifier
-# lrs = [1e-3, 5e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1]
-# for lr in lrs:
-    # print(f'learing rate: {lr}')
-ae = Arxiv(N,K,Channel_Count).to(DEVICE)
+ae = Arxiv(N,K,CHANNEL_COUNT).to(DEVICE)
 ae.load_state_dict(torch.load('saves/Paderborn_Arxiv_AE.pt'))
 ae.eval()
 CrossEntropy = nn.CrossEntropyLoss(weight=weights)
 
-cl = Classifier(K,Class_Count,J,MLP=True).to(DEVICE)
+cl = Classifier(K,CLASS_COUNT,J,MLP=True).to(DEVICE)
 cl_opt = torch.optim.Adam(cl.parameters(), lr=1e-1)
 cl_epochs = 10
 
@@ -111,5 +109,5 @@ print(f'time elapsed: {(end-start)//60:.0f} minutes {(end-start)%60:.0f} seconds
 # PlotResults(ae_train_loss,ae_test_loss,'Loss','MSE + L1 Norm')
 PlotResults(cl_train_loss,cl_test_loss,'Loss','Cross Entropy Loss',isSave=True,savename='Paderborn_Arxiv_Loss')
 PlotResults(cl_train_accuracy,cl_test_accuracy,'Accuracy','Accuracy',isSave=True,savename='Paderborn_Arxiv_Accuracy')
-_ = ConfusionMat(x_test,y_test,ae,cl,Class_Count,isBatched=True)
+_ = ConfusionMat(x_test,y_test,ae,cl,CLASS_COUNT,isBatched=True)
 print('\n\n\n')

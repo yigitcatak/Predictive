@@ -4,8 +4,8 @@ from PREDICTIVE_DEFINITIONS import *
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-Channel_Count = 2
-Class_Count = 10
+CHANNEL_COUNT = 2
+CLASS_COUNT = 10
 N, J = Settings('CWRU')
 K = 400
 
@@ -15,7 +15,7 @@ results_test_loss = []
 results_test_accuracy = []
 
 # Read Data
-if Channel_Count == 1:
+if CHANNEL_COUNT == 1:
     x_train = torch.load('datasets/CWRU/presplit/x_train_fan_end.pt')
     x_test = torch.load('datasets/CWRU/presplit/x_test_fan_end.pt')
     y_train = torch.load('datasets/CWRU/presplit/y_train.pt')
@@ -23,7 +23,7 @@ if Channel_Count == 1:
     x_train = torch.unsqueeze(torch.unsqueeze(x_train,dim=1),dim=1)
     x_test = torch.unsqueeze(torch.unsqueeze(x_test,dim=1),dim=1)
 
-if Channel_Count == 2:
+if CHANNEL_COUNT == 2:
     x_train = torch.load('datasets/CWRU/presplit/x_train_fan_end.pt')
     x_test = torch.load('datasets/CWRU/presplit/x_test_fan_end.pt')
     x_train2 = torch.load('datasets/CWRU/presplit/x_train_drive_end.pt')
@@ -45,7 +45,7 @@ weights = weights.to(DEVICE)
 start = time.time()
 
 # Autoencoder
-ae = Arxiv(N,K,Channel_Count).to(DEVICE)
+ae = Arxiv(N,K,CHANNEL_COUNT).to(DEVICE)
 MSE = nn.MSELoss()
 ae_opt = torch.optim.Adam(ae.parameters(), lr=2e-4)
 ae_epochs = 4
@@ -80,7 +80,7 @@ results_test_loss2 = []
 results_test_accuracy2 = []
 CrossEntropy = nn.CrossEntropyLoss()
 
-cl = Classifier(K,Class_Count,J).to(DEVICE)
+cl = Classifier(K,CLASS_COUNT,J).to(DEVICE)
 cl_opt = torch.optim.Adam(cl.parameters(), lr=1e-1)
 cl_epochs = 250
 

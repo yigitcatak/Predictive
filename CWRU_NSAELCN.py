@@ -4,7 +4,7 @@ from PREDICTIVE_DEFINITIONS import *
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-Class_Count = 10
+CLASS_COUNT = 10
 N, J = Settings('CWRU')
 K = 100
 
@@ -56,7 +56,7 @@ for epoch in range(ae_epochs):
 ae.eval()
 CrossEntropy = nn.CrossEntropyLoss(weight=weights)
 
-cl = Classifier(K,Class_Count,J).to(DEVICE)
+cl = Classifier(K,CLASS_COUNT,J).to(DEVICE)
 cl_opt = torch.optim.Adam(cl.parameters(), lr=1e-1)
 cl_epochs = 100
 

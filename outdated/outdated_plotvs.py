@@ -2,24 +2,20 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-#%%
-Ks = [20,40,80,100,200,300,400]
 
-NSAELCNAccs = pd.read_csv('CWRU_NSAELCN_Accs.csv').values.reshape(-1)
-Arxiv1Accs = pd.read_csv('CWRU_Arxiv_Accs_Channel1.csv').values.reshape(-1)
-Arxiv2Accs = pd.read_csv('CWRU_Arxiv_Accs_Channel2.csv').values.reshape(-1)
+Ks = [0.01,0.05,0.1,0.15,0.2,0.25,0.3]
 
-NSAELCNStds = pd.read_csv('CWRU_NSAELCN_Stds.csv').values.reshape(-1)
-Arxiv1Stds = pd.read_csv('CWRU_Arxiv_Stds_Channel1.csv').values.reshape(-1)
-Arxiv2Stds = pd.read_csv('CWRU_Arxiv_Stds_Channel2.csv').values.reshape(-1)
+NSAELCNAccs = pd.read_csv('nsaelcn.csv').values.reshape(-1)
+Arxiv1Accs = pd.read_csv('arxiv_single.csv').values.reshape(-1)
+Arxiv2Accs = pd.read_csv('arxiv_multi.csv').values.reshape(-1)
 
-plt.figure(figsize=(11,7))
-plt.errorbar(range(1,8),NSAELCNAccs,NSAELCNStds,label='NSO-YBA')
-plt.errorbar(range(1,8),Arxiv1Accs,Arxiv1Stds,label='Geliştirilen Tek Kanallı Yöntem')
-plt.errorbar(range(1,8),Arxiv2Accs,Arxiv2Stds,label='Geliştirilen Çift Kanallı Yöntem')
-plt.xlim(0,8)
+plt.figure(figsize=(5,4))
+plt.plot(range(1,8),NSAELCNAccs,label='NSO-YBA')
+plt.plot(range(1,8),Arxiv1Accs,label='Geliştirilen Tek Kanallı Yöntem')
+plt.plot(range(1,8),Arxiv2Accs,label='Geliştirilen Çift Kanallı Yöntem')
+plt.xlim(0,9)
 plt.xticks(range(1,8),Ks)
-plt.xlabel('Öznitelik Boyutu')
+plt.xlabel('Eğitim Boyutu')
 plt.ylabel('Sınıflandırma Doğruluğu')
 plt.grid(True,axis='y')
 # plt.rcParams.update({'font.size': 22})
