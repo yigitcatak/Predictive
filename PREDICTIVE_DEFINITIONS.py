@@ -28,7 +28,7 @@ class Arxiv(nn.Module):
     def __init__(self,input_dim,encoding_dim,channel_count):
         super(Arxiv,self).__init__()
         self.drp = nn.Dropout(p = 0.1)
-        self.drp_bottleneck = nn.Dropout(p = 0.0)
+        self.drp_bottleneck = nn.Dropout(p = 0.9)
         self.drp_linear = nn.Dropout(p = 0.0)
         self.flat = nn.Flatten()
         self.relu = nn.ReLU()
@@ -182,15 +182,6 @@ def Whiten(x, mean=None, whitening_mat=None ):
         x -= mean
         whitened = x @ whitening_mat
         return whitened
-
-def Zeroone(x, maxim=None, minim=None):
-    t = type(None)
-    if (type(maxim) == t) or (type(minim) == t):
-        maxim = torch.max(x)
-        minim = torch.min(x)
-        return (x-minim)/(maxim-minim), maxim, minim
-    else:
-        return (x-minim)/(maxim-minim)
 
 def PlotResults(train_results,test_results=None,label=None,ylabel=None,isSave=False,savename='figure'):
     plt.figure()

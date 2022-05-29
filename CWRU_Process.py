@@ -5,16 +5,23 @@ from PREDICTIVE_DEFINITIONS import *
 ALL_FILES = [f for f in listdir("datasets/CWRU/original")]
 N, J = Settings('CWRU')
 TRAIN_SIZE = 0.1
+# LABELS = {
+#             'B007': 0, 'B014': 1, 'B021': 2,
+#             'IR007': 3, 'IR014': 4, 'IR021': 5,
+#             'normal': 6,
+#             'OR007@6': 7, 'OR014@6': 8, 'OR021@6': 9
+#          }
 LABELS = {
-            'B007': 0, 'B014': 1, 'B021': 2,
-            'IR007': 3, 'IR014': 4, 'IR021': 5,
-            'normal': 6,
-            'OR007@6': 7, 'OR014@6': 8, 'OR021@6': 9
+            'B007': 0, 'B014': 1, 'B021': 1,
+            'IR007': 1, 'IR014': 1, 'IR021': 1,
+            'normal':1,
+            'OR007@6': 1, 'OR014@6': 1, 'OR021@6': 1
          }
+CLASS_COUNT = 2
 CHANNEL = {3:'drive_end', 4:'fan_end'}
 SEED = randint(0,1e6)
 
-weights = dict(zip(list(range(len(LABELS))),list(0 for i in range(len(LABELS)))))
+weights = dict(zip(list(range(CLASS_COUNT)),list(0 for i in range(CLASS_COUNT))))
 y_mixed_train = []
 y_mixed_test = []
 

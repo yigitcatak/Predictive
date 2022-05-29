@@ -8,8 +8,8 @@ DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 TRAIN_AE = True
 CHANNEL_COUNT = 1
 CLASS_COUNT = 2
-N, J = Settings('Paderborn')
-K = N//2
+N, J = Settings('CWRU')
+K = 200
 
 # Read Data
 x_train = torch.load('datasets/Paderborn/presplit/x_train_vibration.pt')
@@ -63,10 +63,10 @@ if TRAIN_AE:
         # print(f'train loss: {ae_train_loss[-1]}')
         # print(f'test loss: {ae_test_loss[-1]}')
 
-    torch.save(ae.state_dict(), 'saves/Paderborn_Arxiv_AE.pt')
+    torch.save(ae.state_dict(), 'saves/Paderborn_Arxiv_AE3.pt')
 
 ae = Arxiv(N,K,CHANNEL_COUNT).to(DEVICE)
-ae.load_state_dict(torch.load('saves/Paderborn_Arxiv_AE.pt'))
+ae.load_state_dict(torch.load('saves/Paderborn_Arxiv_AE3.pt'))
 ae.eval()
 CrossEntropy = nn.CrossEntropyLoss(weight=weights)
 
@@ -105,7 +105,7 @@ for epoch in range(cl_epochs):
     print(f"test accuracy is: {test_accuracy}")
 end = time.time()
 
-torch.save(cl.state_dict(), 'saves/Paderborn_Arxiv_CL.pt')
+torch.save(cl.state_dict(), 'saves/Paderborn_Arxiv_CL3.pt')
 print(f'time elapsed: {(end-start)//60:.0f} minutes {(end-start)%60:.0f} seconds')
 # PlotResults(ae_train_loss,ae_test_loss,'Loss','MSE + L1 Norm')
 PlotResults(cl_train_loss,cl_test_loss,'Loss','Cross Entropy Loss',isSave=True,savename='Paderborn_Arxiv_Loss')

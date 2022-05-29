@@ -8,7 +8,7 @@ HEALTHY = ['K001','K002','K003','K004','K005']
 INNER = ['KI04','KI14','KI16','KI18','KI21']
 OUTTER = ['KA04','KA15','KA16','KA22','KA30']
 TRAIN_NAMES = RandomCombination(HEALTHY,3) + RandomCombination(INNER,3) + RandomCombination(OUTTER,3)
-N, J = Settings('Paderborn')
+N, J = Settings('CWRU')
 SEED = randint(0,1e6)
 CLASS_COUNT = 2
 TRAIN_SIZE = 1
@@ -33,6 +33,7 @@ for name in ALL_FILES:
     else:
         label = 1
 
+    data = data[::5] # downsample
     segmented = Batch(data, N)
     segmented = segmented[:len(segmented)-(len(segmented)%J)]    
 
@@ -69,7 +70,9 @@ torch.save(x_mixed_train,'datasets/Paderborn/presplit/x_train_vibration.pt')
 torch.save(x_mixed_test,'datasets/Paderborn/presplit/x_test_vibration.pt')
 torch.save(y_train,'datasets/Paderborn/presplit/y_train.pt')
 torch.save(y_test,'datasets/Paderborn/presplit/y_test.pt')
+torch.save(mean,'saves/Paderborn_mean.pt')
+torch.save(whitening_mat,'saves/Paderborn_matrix.pt')
 
 with open('saves/Paderborn_Train_Names.txt','w') as namesfile:
-    for name in TRAIN_NAMES:
+    for name in TRAIN_NAMES: 
         namesfile.write(name + '\n')

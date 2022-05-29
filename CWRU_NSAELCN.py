@@ -5,9 +5,9 @@ from PREDICTIVE_DEFINITIONS import *
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-CLASS_COUNT = 10
+CLASS_COUNT = 2
 N, J = Settings('CWRU')
-K = 100
+K = N//2
 
 # Read Data
 x_train = torch.load('datasets/CWRU/presplit/x_train_fan_end.pt')
@@ -59,7 +59,7 @@ CrossEntropy = nn.CrossEntropyLoss(weight=weights)
 
 cl = Classifier(K,CLASS_COUNT,J).to(DEVICE)
 cl_opt = torch.optim.Adam(cl.parameters(), lr=1e-1)
-cl_epochs = 100
+cl_epochs = 25
 
 cl_train_loss = []
 cl_test_loss = []
@@ -95,3 +95,4 @@ print(f'time elapsed: {(end-start)//60:.0f} minutes {(end-start)%60:.0f} seconds
 # PlotResults(ae_train_loss,ae_test_loss,'Loss','MSE + L1 Norm')
 PlotResults(cl_train_loss,cl_test_loss,'Loss','Cross Entropy Loss',isSave=True,savename='CWRU_NSAELCN_Loss')
 PlotResults(cl_train_accuracy,cl_test_accuracy,'Accuracy','Accuracy',isSave=True,savename='CWRU_NSAELCN_Accuracy')
+_ = ConfusionMat(x_test,y_test,ae,cl,CLASS_COUNT,isBatched=False)
