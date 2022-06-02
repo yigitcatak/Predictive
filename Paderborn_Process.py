@@ -32,6 +32,10 @@ for name in ALL_FILES:
         label = 0
     else:
         label = 1
+    # elif 'KA' == labelname:
+    #     label = 1
+    # elif 'KI' == labelname:
+    #     label = 2
 
     data = data[::5] # downsample
     segmented = Batch(data, N)
